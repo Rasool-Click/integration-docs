@@ -1,4 +1,4 @@
-import { watchEffect } from 'vue'
+import { watchEffect, onBeforeUnmount } from 'vue'
 
 export function useJsonLd(activeSection, endpointSections) {
   watchEffect(() => {
@@ -34,6 +34,13 @@ export function useJsonLd(activeSection, endpointSections) {
       if (script) {
         script.remove()
       }
+    }
+  })
+
+  onBeforeUnmount(() => {
+    const script = document.getElementById('json-ld-schema')
+    if (script) {
+      script.remove()
     }
   })
 }
