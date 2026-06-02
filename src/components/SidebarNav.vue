@@ -15,9 +15,9 @@ defineProps({
 
 <template>
   <aside class="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-xl border border-slate-200 bg-white/92 p-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/82">
-    <p class="px-2 text-xs font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+    <h2 class="px-2 text-xs font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
       Docs
-    </p>
+    </h2>
     <nav class="mt-3 space-y-1" aria-label="Documentation sections">
       <a
         v-for="item in items"

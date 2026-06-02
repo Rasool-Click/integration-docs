@@ -135,7 +135,7 @@ watch([selectedPlatform, endpointSections], () => {
     </header>
 
     <main>
-      <section class="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+      <header class="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
         <div class="mx-auto grid max-w-[1680px] gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_560px] lg:px-8 lg:py-10">
           <div>
             <div class="flex flex-wrap items-center gap-2">
@@ -174,14 +174,14 @@ watch([selectedPlatform, endpointSections], () => {
           </div>
 
           <div class="rounded-xl border border-slate-200 bg-[#f6f8f4] p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-            <p class="mb-3 flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
+            <h2 class="mb-3 flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
               <AppIcon name="workflow" class="h-4 w-4" />
               Select platform
-            </p>
+            </h2>
             <PlatformSwitcher />
           </div>
         </div>
-      </section>
+      </header>
 
       <div class="mx-auto grid max-w-[1680px] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-12 lg:px-8">
         <div class="hidden lg:col-span-3 lg:block">
@@ -189,7 +189,7 @@ watch([selectedPlatform, endpointSections], () => {
         </div>
 
         <div class="space-y-6 lg:col-span-9">
-          <section
+          <article
             v-for="section in DOC_SECTIONS"
             :id="section.id"
             :key="section.id"
@@ -241,7 +241,7 @@ watch([selectedPlatform, endpointSections], () => {
                 <span>{{ item }}</span>
               </li>
             </ul>
-          </section>
+          </article>
 
           <section id="endpoints" data-doc-section class="scroll-mt-28 space-y-4">
             <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/80 sm:p-6">

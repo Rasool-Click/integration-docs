@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useHead } from '@unhead/vue'
 import AppIcon from './AppIcon.vue'
 import { usePlatformStore } from '../stores/platform'
 
@@ -133,10 +134,32 @@ async function copySnippet() {
     }, 1200)
   }
 }
+
+useHead({
+  title: computed(() => `${props.section.title} | WESSAAL ${props.section.platformLabel || platformConfig.value.shortLabel} API`),
+  meta: [
+    {
+      name: 'description',
+      content: computed(() => props.section.description),
+    },
+  ],
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: computed(() => JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'APIReference',
+        name: props.section.title,
+        description: props.section.description,
+        httpMethod: props.section.method,
+      })),
+    },
+  ],
+})
 </script>
 
 <template>
-  <section :id="section.id" class="scroll-mt-28 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950/80">
+  <article :id="section.id" class="scroll-mt-28 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950/80">
     <div class="grid gap-0 xl:grid-cols-[minmax(0,1fr)_520px]">
       <div class="p-5 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
@@ -249,5 +272,5 @@ async function copySnippet() {
         </div>
       </div>
     </div>
-  </section>
+  </article>
 </template>
