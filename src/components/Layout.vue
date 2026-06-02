@@ -1,13 +1,14 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch, defineAsyncComponent } from 'vue'
 import { storeToRefs } from 'pinia'
 import PlatformSwitcher from './PlatformSwitcher.vue'
-import SidebarNav from './SidebarNav.vue'
-import EndpointSection from './EndpointSection.vue'
 import AppIcon from './AppIcon.vue'
 import { DOC_SECTIONS, ENDPOINT_GROUPS, ENDPOINTS, NAV_ITEMS, PERMISSIONS } from '../data/docs'
 import { usePlatformStore } from '../stores/platform'
 import logoUrl from '../assets/wessaal-logo.svg'
+
+const SidebarNav = defineAsyncComponent(() => import('./SidebarNav.vue'))
+const EndpointSection = defineAsyncComponent(() => import('./EndpointSection.vue'))
 
 const platformStore = usePlatformStore()
 const { selectedPlatform, platformConfig } = storeToRefs(platformStore)
