@@ -136,11 +136,11 @@ async function copySnippet() {
 </script>
 
 <template>
-  <section :id="section.id" class="scroll-mt-28 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950/80">
-    <div class="grid gap-0 xl:grid-cols-[minmax(0,1fr)_520px]">
+  <section :id="section.id" class="scroll-mt-28 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950/80">
+    <div class="grid min-w-0 gap-0 xl:grid-cols-[minmax(0,1fr)_minmax(360px,520px)]">
       <div class="p-5 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
-          <div>
+          <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
               <span
                 class="rounded-md px-2.5 py-1 font-mono text-xs font-black ring-1"
@@ -155,7 +155,7 @@ async function copySnippet() {
                 {{ section.permission }}
               </span>
             </div>
-            <h3 class="mt-4 text-xl font-black tracking-tight text-slate-950 dark:text-white">{{ section.title }}</h3>
+            <h3 class="mt-4 break-words text-lg font-black tracking-tight text-slate-950 dark:text-white sm:text-xl">{{ section.title }}</h3>
           </div>
           <span class="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600 dark:bg-slate-900 dark:text-slate-300">
             {{ section.responseStatus }}
@@ -184,8 +184,8 @@ async function copySnippet() {
           <p class="mt-2 break-all font-mono text-sm font-bold text-slate-950 dark:text-white">{{ endpointUrl }}</p>
         </div>
 
-        <div v-if="section.parameters?.length" class="mt-5 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
-          <table class="min-w-full text-left text-sm">
+        <div v-if="section.parameters?.length" class="mt-5 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+          <table class="min-w-[720px] text-left text-sm">
             <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900 dark:text-slate-400">
               <tr>
                 <th class="px-4 py-3 font-black">Parameter</th>
@@ -197,7 +197,7 @@ async function copySnippet() {
             <tbody class="divide-y divide-slate-200 bg-white dark:divide-slate-800 dark:bg-slate-950">
               <tr v-for="param in section.parameters" :key="param.name">
                 <td class="px-4 py-3 font-mono text-xs font-bold text-slate-950 dark:text-white">{{ param.name }}</td>
-                <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ param.type }}</td>
+                <td class="px-4 py-3 break-words text-slate-600 dark:text-slate-300">{{ param.type }}</td>
                 <td class="px-4 py-3">
                   <span
                     class="rounded-md px-2 py-1 text-xs font-black"
@@ -217,10 +217,10 @@ async function copySnippet() {
         </div>
       </div>
 
-      <div class="border-t border-slate-200 bg-slate-950 xl:border-l xl:border-t-0 dark:border-slate-800">
-        <div class="sticky top-24">
-          <div class="flex items-center justify-between border-b border-white/10 px-3 py-2">
-            <div class="flex items-center gap-1">
+      <div class="min-w-0 border-t border-slate-200 bg-slate-950 xl:border-l xl:border-t-0 dark:border-slate-800">
+        <div class="xl:sticky xl:top-24">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-3 py-2">
+            <div class="flex max-w-full items-center gap-1 overflow-x-auto">
               <button
                 v-for="lang in languages"
                 :key="lang"
@@ -234,17 +234,17 @@ async function copySnippet() {
             </div>
             <button
               type="button"
-              class="inline-flex items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1 text-xs font-black text-white hover:bg-white/10"
+              class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1 text-xs font-black text-white hover:bg-white/10"
               @click="copySnippet"
             >
               <AppIcon :name="copied ? 'check' : 'copy'" class="h-3.5 w-3.5" />
               {{ copied ? 'Copied' : 'Copy' }}
             </button>
           </div>
-          <pre class="max-h-[420px] overflow-auto p-4 text-[12px] leading-5 text-slate-100"><code class="font-mono">{{ activeSnippet }}</code></pre>
+          <pre class="max-h-[320px] max-w-full overflow-auto p-4 text-[11px] leading-5 text-slate-100 sm:text-[12px] xl:max-h-[420px]"><code class="font-mono">{{ activeSnippet }}</code></pre>
           <div class="border-t border-white/10 p-4">
             <p class="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Example response</p>
-            <pre class="max-h-[260px] overflow-auto rounded-lg bg-black/30 p-3 text-[12px] leading-5 text-slate-200"><code class="font-mono">{{ formattedResponse }}</code></pre>
+            <pre class="max-h-[220px] max-w-full overflow-auto rounded-lg bg-black/30 p-3 text-[11px] leading-5 text-slate-200 sm:text-[12px] xl:max-h-[260px]"><code class="font-mono">{{ formattedResponse }}</code></pre>
           </div>
         </div>
       </div>

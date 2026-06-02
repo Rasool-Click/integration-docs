@@ -100,26 +100,27 @@ watch([selectedPlatform, endpointSections], () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#f6f8f4] text-slate-800 dark:bg-slate-950 dark:text-slate-100">
+  <div class="min-h-screen overflow-x-hidden bg-[#f6f8f4] text-slate-800 dark:bg-slate-950 dark:text-slate-100">
     <header class="sticky top-0 z-40 border-b border-slate-200/80 bg-[#f6f8f4]/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90">
       <div class="mx-auto max-w-[1680px] px-4 py-3 sm:px-6 lg:px-8">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <a href="#overview" class="flex min-w-0 items-center gap-3" aria-label="Wessaal Developer Documentation">
             <img :src="logoUrl" alt="Wessaal" class="h-10 w-auto shrink-0" />
             <span class="hidden h-7 w-px bg-slate-300 dark:bg-slate-700 sm:block" />
-            <span class="hidden sm:block">
+            <span class="hidden min-w-0 sm:block">
               <span class="block text-xs font-black uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">Developer Docs</span>
               <span class="block text-sm font-black text-slate-950 dark:text-white">Integration APIs</span>
             </span>
           </a>
 
-          <div class="flex items-center gap-2">
+          <div class="flex shrink-0 items-center gap-2">
             <a
               href="#endpoints"
               class="hidden items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-800 shadow-sm hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 sm:inline-flex"
             >
               <AppIcon name="search" class="h-4 w-4" />
-              Browse endpoints
+              <span class="hidden md:inline">Browse endpoints</span>
+              <span class="md:hidden">Endpoints</span>
             </a>
             <button
               type="button"
@@ -127,7 +128,7 @@ watch([selectedPlatform, endpointSections], () => {
               @click="setTheme(!isDark)"
             >
               <AppIcon :name="isDark ? 'sun' : 'moon'" class="h-4 w-4" />
-              {{ isDark ? 'Light' : 'Dark' }}
+              <span class="hidden sm:inline">{{ isDark ? 'Light' : 'Dark' }}</span>
             </button>
           </div>
         </div>
@@ -136,8 +137,8 @@ watch([selectedPlatform, endpointSections], () => {
 
     <main>
       <section class="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-        <div class="mx-auto grid max-w-[1680px] gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_560px] lg:px-8 lg:py-10">
-          <div>
+        <div class="mx-auto grid max-w-[1680px] gap-6 px-4 py-7 sm:px-6 md:gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,480px)] lg:px-8 lg:py-10 xl:grid-cols-[minmax(0,1fr)_560px]">
+          <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
               <span class="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800">
                 Linked Devices live
@@ -146,14 +147,14 @@ watch([selectedPlatform, endpointSections], () => {
                 Official live
               </span>
             </div>
-            <h1 class="mt-5 max-w-5xl text-4xl font-black leading-[1.05] tracking-tight text-slate-950 dark:text-white sm:text-5xl lg:text-6xl">
+            <h1 class="mt-5 max-w-5xl text-3xl font-black leading-[1.08] tracking-tight text-slate-950 dark:text-white sm:text-4xl md:text-5xl xl:text-6xl">
               Production documentation for Wessaal integration developers.
             </h1>
             <p class="mt-5 max-w-3xl text-base leading-8 text-slate-600 dark:text-slate-300">
               Real Linked Devices and Official API documentation generated from the current Laravel route contracts, with each platform kept separate for developers.
             </p>
 
-            <div class="mt-6 grid gap-3 sm:grid-cols-3">
+            <div class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <article
                 v-for="highlight in quickHighlights"
                 :key="highlight.id"
@@ -173,7 +174,7 @@ watch([selectedPlatform, endpointSections], () => {
             </div>
           </div>
 
-          <div class="rounded-xl border border-slate-200 bg-[#f6f8f4] p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
+          <div class="min-w-0 rounded-xl border border-slate-200 bg-[#f6f8f4] p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <p class="mb-3 flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
               <AppIcon name="workflow" class="h-4 w-4" />
               Select platform
@@ -183,12 +184,29 @@ watch([selectedPlatform, endpointSections], () => {
         </div>
       </section>
 
-      <div class="mx-auto grid max-w-[1680px] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-12 lg:px-8">
-        <div class="hidden lg:col-span-3 lg:block">
+      <div class="mx-auto grid max-w-[1680px] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:px-8 xl:grid-cols-[300px_minmax(0,1fr)]">
+        <div class="hidden lg:block">
           <SidebarNav :items="NAV_ITEMS" :active-section="activeSection" />
         </div>
 
-        <div class="space-y-6 lg:col-span-9">
+        <nav class="lg:hidden" aria-label="Documentation sections">
+          <div class="-mx-4 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6">
+            <div class="flex min-w-max gap-2">
+              <a
+                v-for="item in NAV_ITEMS"
+                :key="item.id"
+                :href="`#${item.id}`"
+                class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+                :class="activeSection === item.id ? 'border-slate-950 bg-slate-950 text-white dark:border-white dark:bg-white dark:text-slate-950' : ''"
+              >
+                <AppIcon :name="item.icon || 'book'" class="h-4 w-4 shrink-0" />
+                {{ item.label }}
+              </a>
+            </div>
+          </div>
+        </nav>
+
+        <div class="min-w-0 space-y-6">
           <section
             v-for="section in DOC_SECTIONS"
             :id="section.id"
@@ -202,12 +220,12 @@ watch([selectedPlatform, endpointSections], () => {
                   <AppIcon :name="section.icon || 'book'" class="h-4 w-4" />
                   {{ section.eyebrow || 'Documentation' }}
                 </p>
-                <h2 class="mt-2 text-2xl font-black tracking-tight text-slate-950 dark:text-white">{{ section.title }}</h2>
+                <h2 class="mt-2 text-xl font-black tracking-tight text-slate-950 dark:text-white sm:text-2xl">{{ section.title }}</h2>
               </div>
             </div>
             <p class="mt-3 max-w-4xl text-sm leading-7 text-slate-600 dark:text-slate-300">{{ section.summary }}</p>
 
-            <div v-if="section.cards" class="mt-5 grid gap-3 sm:grid-cols-3">
+            <div v-if="section.cards" class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <article
                 v-for="card in section.cards"
                 :key="card.label"
@@ -217,13 +235,13 @@ watch([selectedPlatform, endpointSections], () => {
                   <AppIcon :name="card.icon" class="h-4 w-4" />
                   {{ card.label }}
                 </p>
-                <p class="mt-2 font-mono text-sm font-black text-slate-950 dark:text-white">{{ card.value }}</p>
+                <p class="mt-2 break-words font-mono text-sm font-black text-slate-950 dark:text-white">{{ card.value }}</p>
               </article>
             </div>
 
-            <pre v-if="section.code" class="mt-5 overflow-auto rounded-lg bg-slate-950 p-4 text-[13px] leading-6 text-slate-100"><code class="font-mono">{{ section.code }}</code></pre>
+            <pre v-if="section.code" class="mt-5 max-w-full overflow-auto rounded-lg bg-slate-950 p-4 text-[12px] leading-6 text-slate-100 sm:text-[13px]"><code class="font-mono">{{ section.code }}</code></pre>
 
-            <ol v-if="section.steps" class="mt-5 grid gap-3 md:grid-cols-5">
+            <ol v-if="section.steps" class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <li
                 v-for="(step, index) in section.steps"
                 :key="step.title"
@@ -251,12 +269,12 @@ watch([selectedPlatform, endpointSections], () => {
                     <AppIcon name="terminal" class="h-4 w-4" />
                     Endpoint reference
                   </p>
-                  <h2 class="mt-2 text-2xl font-black tracking-tight text-slate-950 dark:text-white">{{ platformConfig.shortLabel }} endpoints</h2>
+                  <h2 class="mt-2 text-xl font-black tracking-tight text-slate-950 dark:text-white sm:text-2xl">{{ platformConfig.shortLabel }} endpoints</h2>
                   <p class="mt-2 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-300">
                     These are the live routes for the selected platform. Permission names match the API key middleware scopes.
                   </p>
                 </div>
-                <div class="grid gap-2 sm:grid-cols-[minmax(0,280px)_190px]">
+                <div class="grid w-full gap-2 sm:grid-cols-[minmax(0,1fr)_190px] xl:w-auto xl:min-w-[470px]">
                   <label class="relative block">
                     <AppIcon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
@@ -275,7 +293,7 @@ watch([selectedPlatform, endpointSections], () => {
                 </div>
               </div>
 
-              <div class="mt-5 grid gap-2 md:grid-cols-3">
+              <div class="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 <article
                   v-for="permission in PERMISSIONS"
                   :key="permission.key"

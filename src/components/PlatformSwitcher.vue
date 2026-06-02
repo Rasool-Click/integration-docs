@@ -21,12 +21,12 @@ const platformMeta = {
 </script>
 
 <template>
-  <div class="grid gap-3 md:grid-cols-2">
+  <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
     <button
       v-for="item in platformOptions"
       :key="item.id"
       type="button"
-      class="group rounded-xl border p-4 text-left transition duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+      class="group min-w-0 rounded-xl border p-4 text-left transition duration-200 hover:-translate-y-0.5 hover:shadow-lg"
       :class="
         selectedPlatform === item.id
           ? `${platformMeta[item.id].accent} shadow-sm ring-4`
@@ -34,17 +34,17 @@ const platformMeta = {
       "
       @click="selectedPlatform = item.id"
     >
-      <span class="flex items-start justify-between gap-3">
-        <span class="flex items-center gap-3">
+      <span class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <span class="flex min-w-0 items-center gap-3">
           <span class="grid h-10 w-10 place-items-center rounded-lg bg-white shadow-sm dark:bg-slate-900">
             <AppIcon :name="platformMeta[item.id].icon" class="h-5 w-5" />
           </span>
-          <span>
+          <span class="min-w-0">
             <span class="block text-sm font-extrabold">{{ item.label }}</span>
             <span class="mt-0.5 block text-xs leading-5 opacity-75">{{ item.description }}</span>
           </span>
         </span>
-        <span class="rounded-md px-2 py-1 text-[11px] font-black uppercase tracking-wide" :class="platformMeta[item.id].status">
+        <span class="w-fit rounded-md px-2 py-1 text-[11px] font-black uppercase tracking-wide" :class="platformMeta[item.id].status">
           {{ item.status }}
         </span>
       </span>

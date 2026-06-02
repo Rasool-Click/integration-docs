@@ -10,6 +10,10 @@
     scroll-behavior: smooth;
   }
 
+  body {
+    overflow-x: hidden;
+  }
+
   ::selection {
     background: #0e7490;
     color: #f8fafc;
@@ -24,5 +28,12 @@
   * {
     scrollbar-color: #155e75 transparent;
     scrollbar-width: thin;
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
   }
 }
