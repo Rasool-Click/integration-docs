@@ -136,7 +136,7 @@ async function copySnippet() {
 </script>
 
 <template>
-  <section :id="section.id" class="scroll-mt-28 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950/80">
+  <article :id="section.id" :aria-labelledby="`${section.id}-heading`" class="scroll-mt-28 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950/80">
     <div class="grid gap-0 xl:grid-cols-[minmax(0,1fr)_520px]">
       <div class="p-5 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
@@ -155,7 +155,7 @@ async function copySnippet() {
                 {{ section.permission }}
               </span>
             </div>
-            <h3 class="mt-4 text-xl font-black tracking-tight text-slate-950 dark:text-white">{{ section.title }}</h3>
+            <h3 :id="`${section.id}-heading`" class="mt-4 text-xl font-black tracking-tight text-slate-950 dark:text-white">{{ section.title }}</h3>
           </div>
           <span class="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600 dark:bg-slate-900 dark:text-slate-300">
             {{ section.responseStatus }}
@@ -249,5 +249,5 @@ async function copySnippet() {
         </div>
       </div>
     </div>
-  </section>
+  </article>
 </template>

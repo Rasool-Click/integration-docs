@@ -7,6 +7,7 @@ import EndpointSection from './EndpointSection.vue'
 import AppIcon from './AppIcon.vue'
 import { DOC_SECTIONS, ENDPOINT_GROUPS, ENDPOINTS, NAV_ITEMS, PERMISSIONS } from '../data/docs'
 import { usePlatformStore } from '../stores/platform'
+import { useJsonLd } from '../composables/useJsonLd'
 import logoUrl from '../assets/wessaal-logo.svg'
 
 const platformStore = usePlatformStore()
@@ -52,6 +53,8 @@ const quickHighlights = computed(() => [
     mono: false,
   },
 ])
+
+useJsonLd(activeSection, endpointSections)
 
 function setTheme(nextDark) {
   isDark.value = nextDark
@@ -135,7 +138,7 @@ watch([selectedPlatform, endpointSections], () => {
     </header>
 
     <main>
-      <section class="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+      <section aria-labelledby="hero-heading" class="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
         <div class="mx-auto grid max-w-[1680px] gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_560px] lg:px-8 lg:py-10">
           <div>
             <div class="flex flex-wrap items-center gap-2">
@@ -146,7 +149,7 @@ watch([selectedPlatform, endpointSections], () => {
                 Official live
               </span>
             </div>
-            <h1 class="mt-5 max-w-5xl text-4xl font-black leading-[1.05] tracking-tight text-slate-950 dark:text-white sm:text-5xl lg:text-6xl">
+            <h1 id="hero-heading" class="mt-5 max-w-5xl text-4xl font-black leading-[1.05] tracking-tight text-slate-950 dark:text-white sm:text-5xl lg:text-6xl">
               Production documentation for Wessaal integration developers.
             </h1>
             <p class="mt-5 max-w-3xl text-base leading-8 text-slate-600 dark:text-slate-300">
@@ -159,10 +162,10 @@ watch([selectedPlatform, endpointSections], () => {
                 :key="highlight.id"
                 class="rounded-xl border border-slate-200 bg-[#f6f8f4] p-4 dark:border-slate-800 dark:bg-slate-900/70"
               >
-                <p class="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                <h2 class="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   <AppIcon :name="highlight.icon" class="h-4 w-4" />
                   {{ highlight.label }}
-                </p>
+                </h2>
                 <p
                   class="mt-2 text-sm font-black text-slate-950 dark:text-white"
                   :class="highlight.mono ? 'break-all font-mono text-[12px]' : ''"
@@ -173,13 +176,13 @@ watch([selectedPlatform, endpointSections], () => {
             </div>
           </div>
 
-          <div class="rounded-xl border border-slate-200 bg-[#f6f8f4] p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-            <p class="mb-3 flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
+          <aside class="rounded-xl border border-slate-200 bg-[#f6f8f4] p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
+            <h2 class="mb-3 flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
               <AppIcon name="workflow" class="h-4 w-4" />
               Select platform
-            </p>
+            </h2>
             <PlatformSwitcher />
-          </div>
+          </aside>
         </div>
       </section>
 
@@ -194,6 +197,7 @@ watch([selectedPlatform, endpointSections], () => {
             :id="section.id"
             :key="section.id"
             data-doc-section
+            :aria-labelledby="`${section.id}-heading`"
             class="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/80 sm:p-6"
           >
             <div class="flex flex-wrap items-start justify-between gap-4">
@@ -202,7 +206,7 @@ watch([selectedPlatform, endpointSections], () => {
                   <AppIcon :name="section.icon || 'book'" class="h-4 w-4" />
                   {{ section.eyebrow || 'Documentation' }}
                 </p>
-                <h2 class="mt-2 text-2xl font-black tracking-tight text-slate-950 dark:text-white">{{ section.title }}</h2>
+                <h2 :id="`${section.id}-heading`" class="mt-2 text-2xl font-black tracking-tight text-slate-950 dark:text-white">{{ section.title }}</h2>
               </div>
             </div>
             <p class="mt-3 max-w-4xl text-sm leading-7 text-slate-600 dark:text-slate-300">{{ section.summary }}</p>
@@ -213,10 +217,10 @@ watch([selectedPlatform, endpointSections], () => {
                 :key="card.label"
                 class="rounded-lg border border-slate-200 bg-[#f6f8f4] p-4 dark:border-slate-800 dark:bg-slate-900"
               >
-                <p class="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                <h3 class="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   <AppIcon :name="card.icon" class="h-4 w-4" />
                   {{ card.label }}
-                </p>
+                </h3>
                 <p class="mt-2 font-mono text-sm font-black text-slate-950 dark:text-white">{{ card.value }}</p>
               </article>
             </div>
@@ -243,7 +247,7 @@ watch([selectedPlatform, endpointSections], () => {
             </ul>
           </section>
 
-          <section id="endpoints" data-doc-section class="scroll-mt-28 space-y-4">
+          <section id="endpoints" data-doc-section aria-labelledby="endpoints-heading" class="scroll-mt-28 space-y-4">
             <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/80 sm:p-6">
               <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                 <div>
@@ -251,7 +255,7 @@ watch([selectedPlatform, endpointSections], () => {
                     <AppIcon name="terminal" class="h-4 w-4" />
                     Endpoint reference
                   </p>
-                  <h2 class="mt-2 text-2xl font-black tracking-tight text-slate-950 dark:text-white">{{ platformConfig.shortLabel }} endpoints</h2>
+                  <h2 id="endpoints-heading" class="mt-2 text-2xl font-black tracking-tight text-slate-950 dark:text-white">{{ platformConfig.shortLabel }} endpoints</h2>
                   <p class="mt-2 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-300">
                     These are the live routes for the selected platform. Permission names match the API key middleware scopes.
                   </p>
@@ -281,7 +285,7 @@ watch([selectedPlatform, endpointSections], () => {
                   :key="permission.key"
                   class="rounded-lg border border-slate-200 bg-[#f6f8f4] p-3 dark:border-slate-800 dark:bg-slate-900"
                 >
-                  <p class="font-mono text-xs font-black text-slate-950 dark:text-white">{{ permission.key }}</p>
+                  <h3 class="font-mono text-xs font-black text-slate-950 dark:text-white">{{ permission.key }}</h3>
                   <p class="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">{{ permission.label }}</p>
                 </article>
               </div>
