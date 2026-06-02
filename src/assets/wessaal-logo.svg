@@ -1,0 +1,13 @@
+<svg width="220" height="48" viewBox="0 0 220 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="1" width="46" height="46" rx="14" fill="url(#paint0_linear)"/>
+  <rect x="1" y="1" width="46" height="46" rx="14" stroke="#0891B2" stroke-width="2"/>
+  <path d="M13 15L20.5 33L24 24.5L27.5 33L35 15" stroke="white" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="61" y="22" fill="#0F172A" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="800">WESSAAL</text>
+  <text x="61" y="37" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="600" letter-spacing="0.08em">DEVELOPER HUB</text>
+  <defs>
+    <linearGradient id="paint0_linear" x1="7" y1="6" x2="41" y2="42" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0891B2"/>
+      <stop offset="1" stop-color="#0E7490"/>
+    </linearGradient>
+  </defs>
+</svg>
