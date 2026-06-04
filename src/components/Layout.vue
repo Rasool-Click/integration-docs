@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import PlatformSwitcher from './PlatformSwitcher.vue'
 import SidebarNav from './SidebarNav.vue'
@@ -19,6 +19,9 @@ const activeSection = ref('overview')
 const observer = ref(null)
 const search = ref('')
 const selectedGroup = ref('All')
+const developerSearch = ref('')
+const isDeveloperSearchFocused = ref(false)
+const developerSearchWrapper = ref(null)
 const themeMediaQuery = ref(null)
 const brandAssets = ref({
   logo: logoUrl,
@@ -62,6 +65,53 @@ const quickHighlights = computed(() => [
     mono: false,
   },
 ])
+
+const developerResults = computed(() => {
+  const query = developerSearch.value.trim().toLowerCase()
+  if (!query) return []
+
+  const sectionMatches = DOC_SECTIONS.filter((section) => {
+    const sectionText = [
+      section.title,
+      section.eyebrow,
+      section.summary,
+      ...(section.bullets || []),
+      ...((section.cards || []).map((card) => `${card.label} ${card.value}`)),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+
+    return sectionText.includes(query)
+  }).map((section) => ({
+    id: section.id,
+    href: `#${section.id}`,
+    icon: section.icon || 'book',
+    title: section.title,
+    subtitle: section.summary,
+    kind: 'Guide',
+    targetSection: section.id,
+  }))
+
+  const endpointMatches = ENDPOINTS.filter((endpoint) => {
+    if ((endpoint.platform || 'linked') !== selectedPlatform.value) return false
+
+    const endpointText = `${endpoint.title} ${endpoint.description} ${endpoint.method} ${endpoint.path} ${endpoint.permission} ${endpoint.group}`.toLowerCase()
+    return endpointText.includes(query)
+  }).map((endpoint) => ({
+    id: endpoint.id,
+    href: `#${endpoint.id}`,
+    icon: 'terminal',
+    title: endpoint.title,
+    subtitle: `${endpoint.method} ${endpoint.path}`,
+    kind: 'Endpoint',
+    targetSection: 'endpoints',
+  }))
+
+  return [...sectionMatches, ...endpointMatches].slice(0, 8)
+})
+
+const showDeveloperResults = computed(() => isDeveloperSearchFocused.value && developerSearch.value.trim().length > 0)
 
 const headerLogoSrc = computed(() => {
   if (isDark.value) return brandAssets.value.logo_dark || brandAssets.value.logo_full || brandAssets.value.logo || logoUrl
@@ -117,6 +167,37 @@ function handleThemeChange(event) {
   setTheme(event.matches)
 }
 
+function handleOutsideClick(event) {
+  if (!developerSearchWrapper.value?.contains(event.target)) {
+    isDeveloperSearchFocused.value = false
+  }
+}
+
+async function goToDeveloperResult(result) {
+  if (result.kind === 'Endpoint') {
+    selectedGroup.value = 'All'
+    search.value = ''
+    await nextTick()
+  }
+
+  isDeveloperSearchFocused.value = false
+  developerSearch.value = ''
+  activeSection.value = result.targetSection
+
+  window.requestAnimationFrame(() => {
+    const target = document.getElementById(result.id)
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      window.history.replaceState(null, '', result.href)
+    }
+  })
+}
+
+function goToFirstDeveloperResult() {
+  if (!developerResults.value.length) return
+  goToDeveloperResult(developerResults.value[0])
+}
+
 function setupScrollSpy() {
   const sections = document.querySelectorAll('[data-doc-section]')
 
@@ -136,12 +217,14 @@ function setupScrollSpy() {
 
 onMounted(() => {
   initTheme()
+  document.addEventListener('click', handleOutsideClick)
   themeMediaQuery.value?.addEventListener('change', handleThemeChange)
   loadBrandAssets()
   setupScrollSpy()
 })
 
 onBeforeUnmount(() => {
+  document.removeEventListener('click', handleOutsideClick)
   themeMediaQuery.value?.removeEventListener('change', handleThemeChange)
   observer.value?.disconnect()
 })
@@ -168,7 +251,58 @@ watch([selectedPlatform, endpointSections], () => {
             </span>
           </a>
 
-          <div class="flex shrink-0 items-center gap-2">
+          <div ref="developerSearchWrapper" class="relative order-3 w-full md:order-2 md:max-w-xl md:flex-1">
+            <label class="relative block">
+              <AppIcon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                v-model="developerSearch"
+                type="search"
+                placeholder="Search docs for developers"
+                class="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-9 text-sm font-bold text-slate-700 outline-none ring-0 focus:border-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                @focus="isDeveloperSearchFocused = true"
+                @keydown.enter.prevent="goToFirstDeveloperResult"
+                @keydown.esc="isDeveloperSearchFocused = false"
+              />
+              <button
+                v-if="developerSearch"
+                type="button"
+                class="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                @click="developerSearch = ''"
+              >
+                <AppIcon name="x" class="h-4 w-4" />
+              </button>
+            </label>
+
+            <div
+              v-if="showDeveloperResults"
+              class="absolute left-0 right-0 z-50 mt-2 max-h-[340px] w-full overflow-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-950"
+            >
+              <button
+                v-for="result in developerResults"
+                :key="result.id"
+                type="button"
+                class="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-slate-100 dark:hover:bg-slate-900"
+                @click="goToDeveloperResult(result)"
+              >
+                <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                  <AppIcon :name="result.icon" class="h-4 w-4" />
+                </span>
+                <span class="min-w-0">
+                  <span class="block truncate text-sm font-black text-slate-900 dark:text-slate-100">{{ result.title }}</span>
+                  <span class="block truncate text-xs text-slate-500 dark:text-slate-400">{{ result.subtitle }}</span>
+                </span>
+                <span class="ml-auto rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                  {{ result.kind }}
+                </span>
+              </button>
+
+              <p v-if="developerResults.length === 0" class="px-3 py-2 text-sm font-bold text-slate-500 dark:text-slate-400">
+                No results found. Try endpoint name, path, or section title.
+              </p>
+            </div>
+          </div>
+
+          <div class="order-2 flex shrink-0 items-center gap-2 md:order-3">
             <PlatformSwitcher />
             <a
               href="#endpoints"
