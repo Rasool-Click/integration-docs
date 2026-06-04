@@ -9,45 +9,35 @@ const { selectedPlatform, platformOptions } = storeToRefs(platformStore)
 const platformMeta = {
   linked: {
     icon: 'smartphone',
-    accent: 'border-emerald-300 bg-emerald-50 text-emerald-900 ring-emerald-100 dark:border-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-100 dark:ring-emerald-900',
-    status: 'bg-emerald-600 text-white',
+    accent: 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-950',
+    idle: 'text-emerald-700 dark:text-emerald-300',
   },
   official: {
     icon: 'cloud',
-    accent: 'border-sky-300 bg-sky-50 text-sky-950 ring-sky-100 dark:border-sky-700 dark:bg-sky-950/40 dark:text-sky-100 dark:ring-sky-900',
-    status: 'bg-sky-600 text-white',
+    accent: 'bg-sky-600 text-white dark:bg-sky-500 dark:text-slate-950',
+    idle: 'text-sky-700 dark:text-sky-300',
   },
 }
 </script>
 
 <template>
-  <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
+  <div class="inline-flex items-center rounded-lg border border-slate-300 bg-white/90 p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900/80" role="tablist" aria-label="Platform switcher">
     <button
       v-for="item in platformOptions"
       :key="item.id"
       type="button"
-      class="group min-w-0 rounded-xl border p-4 text-left transition duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+      role="tab"
+      :aria-selected="selectedPlatform === item.id"
+      class="inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-black uppercase tracking-wide transition sm:text-sm"
       :class="
         selectedPlatform === item.id
-          ? `${platformMeta[item.id].accent} shadow-sm ring-4`
-          : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950/80 dark:text-slate-300 dark:hover:border-slate-700'
+          ? `${platformMeta[item.id].accent} shadow-sm`
+          : `bg-transparent ${platformMeta[item.id].idle} hover:bg-slate-100 dark:hover:bg-slate-800`
       "
       @click="selectedPlatform = item.id"
     >
-      <span class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <span class="flex min-w-0 items-center gap-3">
-          <span class="grid h-10 w-10 place-items-center rounded-lg bg-white shadow-sm dark:bg-slate-900">
-            <AppIcon :name="platformMeta[item.id].icon" class="h-5 w-5" />
-          </span>
-          <span class="min-w-0">
-            <span class="block text-sm font-extrabold">{{ item.label }}</span>
-            <span class="mt-0.5 block text-xs leading-5 opacity-75">{{ item.description }}</span>
-          </span>
-        </span>
-        <span class="w-fit rounded-md px-2 py-1 text-[11px] font-black uppercase tracking-wide" :class="platformMeta[item.id].status">
-          {{ item.status }}
-        </span>
-      </span>
+      <AppIcon :name="platformMeta[item.id].icon" class="h-4 w-4" />
+      <span class="hidden md:inline">{{ item.label }}</span>
     </button>
   </div>
 </template>
