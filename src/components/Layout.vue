@@ -232,8 +232,8 @@ watch([selectedPlatform, endpointSections], () => {
         </div>
       </section>
 
-      <div class="mx-auto grid max-w-[1680px] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start lg:px-8 xl:grid-cols-[300px_minmax(0,1fr)]">
-        <div class="hidden lg:block lg:self-start">
+      <div class="mx-auto grid max-w-[1680px] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:px-8 xl:grid-cols-[300px_minmax(0,1fr)]">
+        <div class="hidden lg:block">
           <SidebarNav :items="NAV_ITEMS" :active-section="activeSection" />
         </div>
 
