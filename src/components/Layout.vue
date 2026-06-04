@@ -22,7 +22,6 @@ const selectedGroup = ref('All')
 const developerSearch = ref('')
 const isDeveloperSearchFocused = ref(false)
 const developerSearchWrapper = ref(null)
-const themeMediaQuery = ref(null)
 const brandAssets = ref({
   logo: logoUrl,
   logo_full: logoUrl,
@@ -159,12 +158,7 @@ function setTheme(nextDark) {
 }
 
 function initTheme() {
-  themeMediaQuery.value = window.matchMedia('(prefers-color-scheme: dark)')
-  setTheme(themeMediaQuery.value.matches)
-}
-
-function handleThemeChange(event) {
-  setTheme(event.matches)
+  setTheme(false)
 }
 
 function handleOutsideClick(event) {
@@ -218,14 +212,12 @@ function setupScrollSpy() {
 onMounted(() => {
   initTheme()
   document.addEventListener('click', handleOutsideClick)
-  themeMediaQuery.value?.addEventListener('change', handleThemeChange)
   loadBrandAssets()
   setupScrollSpy()
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleOutsideClick)
-  themeMediaQuery.value?.removeEventListener('change', handleThemeChange)
   observer.value?.disconnect()
 })
 
