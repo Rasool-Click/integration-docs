@@ -4,7 +4,7 @@ import { visualizer } from 'rollup-plugin-visualizer'
 import generateSitemap from 'vite-ssg-sitemap'
 
 export default defineConfig({
-  base: '/docs/',
+  base: process.env.VERCEL === '1' ? '/' : '/docs/',
   plugins: [
     vue(),
     visualizer({

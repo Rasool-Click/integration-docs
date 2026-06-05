@@ -7,7 +7,7 @@ import { routes } from './router'
 // https://github.com/antfu/vite-ssg
 export const createApp = ViteSSG(
   App,
-  { routes, base: '/docs/' },
+  { routes, base: import.meta.env.BASE_URL },
   ({ app, router, routes, isClient, initialState }) => {
     const pinia = createPinia()
     app.use(pinia)
