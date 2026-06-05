@@ -231,7 +231,7 @@ watch([selectedPlatform, endpointSections], () => {
 
 <template>
   <div class="min-h-screen bg-[#f6f8f4] text-slate-800 dark:bg-slate-950 dark:text-slate-100">
-    <header class="sticky top-0 z-40 border-b border-slate-200/80 bg-[#f6f8f4]/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90">
+    <header class="sticky top-0 z-40 border-b border-slate-200/80 bg-[#f6f8f4]/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90" role="banner">
       <div class="mx-auto max-w-[1680px] px-4 py-3 sm:px-6 lg:px-8">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <a href="#overview" class="flex min-w-0 items-center gap-3" aria-label="Wessaal Developer Documentation">
@@ -244,13 +244,15 @@ watch([selectedPlatform, endpointSections], () => {
           </a>
 
           <div ref="developerSearchWrapper" class="relative order-3 w-full md:order-2 md:max-w-xl md:flex-1">
-            <label class="relative block">
-              <AppIcon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <label class="relative block" for="dev-search">
+              <span class="sr-only">Search docs for developers</span>
+              <AppIcon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
               <input
+                id="dev-search"
                 v-model="developerSearch"
                 type="search"
                 placeholder="Search docs for developers"
-                class="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-9 text-sm font-bold text-slate-700 outline-none ring-0 focus:border-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                class="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-9 text-sm font-bold text-slate-700 outline-none ring-0 focus-ring dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 @focus="isDeveloperSearchFocused = true"
                 @keydown.enter.prevent="goToFirstDeveloperResult"
                 @keydown.esc="isDeveloperSearchFocused = false"
@@ -258,10 +260,11 @@ watch([selectedPlatform, endpointSections], () => {
               <button
                 v-if="developerSearch"
                 type="button"
-                class="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                aria-label="Clear search"
+                class="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus-ring dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                 @click="developerSearch = ''"
               >
-                <AppIcon name="x" class="h-4 w-4" />
+                <AppIcon name="x" class="h-4 w-4" aria-hidden="true" />
               </button>
             </label>
 
@@ -317,8 +320,8 @@ watch([selectedPlatform, endpointSections], () => {
       </div>
     </header>
 
-    <main>
-      <section class="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+    <main id="main-content">
+      <section class="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950" aria-labelledby="intro-heading">
         <div class="mx-auto max-w-[1680px] px-4 py-7 sm:px-6 lg:px-8 lg:py-10">
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
@@ -329,7 +332,7 @@ watch([selectedPlatform, endpointSections], () => {
                 Official live
               </span>
             </div>
-            <h1 class="mt-5 max-w-5xl text-3xl font-black leading-[1.08] tracking-tight text-slate-950 dark:text-white sm:text-4xl md:text-5xl xl:text-6xl">
+            <h1 id="intro-heading" class="mt-5 max-w-5xl text-3xl font-black leading-[1.08] tracking-tight text-slate-950 dark:text-white sm:text-4xl md:text-5xl xl:text-6xl">
               Production documentation for Wessaal integration developers.
             </h1>
             <p class="mt-5 max-w-3xl text-base leading-8 text-slate-600 dark:text-slate-300">
@@ -359,9 +362,9 @@ watch([selectedPlatform, endpointSections], () => {
       </section>
 
       <div class="mx-auto grid max-w-[1680px] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:px-8 xl:grid-cols-[300px_minmax(0,1fr)]">
-        <div class="hidden lg:block">
+        <aside class="hidden lg:block" aria-label="Sidebar Navigation">
           <SidebarNav :items="NAV_ITEMS" :active-section="activeSection" />
-        </div>
+        </aside>
 
         <nav class="lg:hidden" aria-label="Documentation sections">
           <div class="-mx-4 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6">
@@ -449,18 +452,22 @@ watch([selectedPlatform, endpointSections], () => {
                   </p>
                 </div>
                 <div class="grid w-full gap-2 sm:grid-cols-[minmax(0,1fr)_190px] xl:w-auto xl:min-w-[470px]">
-                  <label class="relative block">
-                    <AppIcon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <label class="relative block" for="endpoint-search">
+                    <span class="sr-only">Search endpoints</span>
+                    <AppIcon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
                     <input
+                      id="endpoint-search"
                       v-model="search"
                       type="search"
                       placeholder="Search endpoints"
-                      class="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm font-bold outline-none ring-0 focus:border-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                      class="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm font-bold outline-none ring-0 focus-ring dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                     />
                   </label>
+                  <label for="endpoint-group" class="sr-only">Filter by group</label>
                   <select
+                    id="endpoint-group"
                     v-model="selectedGroup"
-                    class="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                    class="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold outline-none focus-ring dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                   >
                     <option v-for="group in ENDPOINT_GROUPS" :key="group" :value="group">{{ group }}</option>
                   </select>

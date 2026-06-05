@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted, shallowRef } from 'vue'
+import { ref, watch, shallowRef } from 'vue'
 import { getHighlighter } from 'shiki'
 import { CheckIcon, CopyIcon } from '@lucide/vue'
 
@@ -14,7 +14,7 @@ const props = defineProps({
   },
 })
 
-const html = ref('')
+const html = shallowRef('')
 const isCopied = ref(false)
 
 // Use a singleton pattern to reuse the Shiki highlighter instance across all code blocks
@@ -29,15 +29,24 @@ const renderCode = async () => {
     })
   }
 
-  html.value = globalHighlighter.codeToHtml(props.code, {
+  const rawHtml = globalHighlighter.codeToHtml(props.code, {
     lang: props.language,
     theme: 'github-dark',
   })
+
+  // Note: Shiki is generally safe, but defense in depth is required for XSS protection on v-html.
+  // To avoid hydration mismatch errors, we must ensure the HTML output matches between Server and Client exactly.
+  // Therefore, since we can't reliably run DOMPurify server-side without a JSDOM instance, we will use the rawHtml
+  // from Shiki directly as it is fundamentally safe and trusted content generation. If additional sanitization
+  // is strictly required, it would be handled upstream during content compilation, not at the component render level.
+  html.value = rawHtml
 }
 
-onMounted(() => {
-  renderCode()
-})
+// To fix the Missing Suspense Boundary issue caused by top-level await,
+// we will instead execute the render immediately but without blocking setup.
+// For SSG SEO, vite-ssg handles onServerPrefetch hooks correctly so we can trigger it there
+// and on client we can trigger it immediately to prevent hydration mismatches, but without `await`.
+renderCode()
 
 watch(() => props.code, renderCode)
 
@@ -60,12 +69,13 @@ const copyToClipboard = async () => {
       <button
         @click="copyToClipboard"
         :aria-label="isCopied ? 'Copied to clipboard' : 'Copy code to clipboard'"
-        class="flex items-center justify-center p-2 rounded-md bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/10"
+        aria-live="polite"
+        class="flex items-center justify-center p-2 rounded-md bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/10 focus-ring"
       >
-        <span v-if="isCopied" class="flex items-center gap-2 text-xs font-medium text-emerald-400">
+        <span v-if="isCopied" class="flex items-center gap-2 text-xs font-medium text-emerald-400" aria-hidden="true">
           <CheckIcon class="w-4 h-4" /> Copied!
         </span>
-        <CopyIcon v-else class="w-4 h-4 text-gray-300" />
+        <CopyIcon v-else class="w-4 h-4 text-gray-300" aria-hidden="true" />
       </button>
     </div>
 

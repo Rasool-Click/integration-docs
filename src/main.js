@@ -15,9 +15,16 @@ export const createApp = ViteSSG(
     // @unhead/vue and Shiki initialization are automatically handled by their respective plugins or integrations (vite-ssg manages head automatically).
     // The head instance is automatically created and injected into the app when ViteSSG mounts.
 
-    if (import.meta.env.SSR)
-      initialState.pinia = pinia.state.value
-    else
+    if (isClient) {
       pinia.state.value = initialState.pinia || {}
+    } else {
+      initialState.pinia = pinia.state.value
+    }
+
+    // Global Vue error handler to prevent hard crashes
+    app.config.errorHandler = (err, instance, info) => {
+      console.error('Global Vue Error:', err, info)
+      // Implementation for external logging (e.g. Sentry) can be placed here.
+    }
   }
 )

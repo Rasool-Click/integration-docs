@@ -1,4 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/*
+  Using a <link> tag in index.html is better for performance than @import in CSS.
+  Preload hints can be handled by Vite/Unhead.
+*/
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;

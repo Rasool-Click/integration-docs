@@ -14,5 +14,11 @@ export const routes = [
   {
     path: '/official',
     component: () => import('../components/Layout.vue'), // Lazy-load placeholder
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    // Fallback logic, reusing Layout for now but can be customized to an Error component.
+    component: () => import('../components/Layout.vue'),
   }
 ]
