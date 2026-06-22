@@ -329,14 +329,14 @@ watch([selectedPlatform, endpointSections], () => {
                 Linked Devices live
               </span>
               <span class="rounded-md bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-800">
-                Official live
+                Official coming soon
               </span>
             </div>
             <h1 id="intro-heading" class="mt-5 max-w-5xl text-3xl font-black leading-[1.08] tracking-tight text-slate-950 dark:text-white sm:text-4xl md:text-5xl xl:text-6xl">
               Production documentation for Wessaal integration developers.
             </h1>
             <p class="mt-5 max-w-3xl text-base leading-8 text-slate-600 dark:text-slate-300">
-              Real Linked Devices and Official API documentation generated from the current Laravel route contracts, with each platform kept separate for developers.
+              Linked Devices documentation is live for developers. Official API integration is marked coming soon and is not reachable until its public contract is ready.
             </p>
 
             <div class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -448,7 +448,7 @@ watch([selectedPlatform, endpointSections], () => {
                   </p>
                   <h2 class="mt-2 text-xl font-black tracking-tight text-slate-950 dark:text-white sm:text-2xl">{{ platformConfig.shortLabel }} endpoints</h2>
                   <p class="mt-2 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-300">
-                    These are the live routes for the selected platform. Permission names match the API key middleware scopes.
+                    These are the live Linked Devices routes. Permission names match the API key middleware scopes.
                   </p>
                 </div>
                 <div class="grid w-full gap-2 sm:grid-cols-[minmax(0,1fr)_190px] xl:w-auto xl:min-w-[470px]">

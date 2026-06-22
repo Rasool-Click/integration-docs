@@ -19,7 +19,7 @@ export default defineConfig({
     formatting: 'minify',
     includedRoutes(paths, routes) {
       // return all static paths and custom routes defined in memory/requirements
-      return paths.concat(['/linked', '/official'])
+      return paths.concat(['/linked'])
     },
     onFinished() { generateSitemap({ hostname: 'https://wessaal.com/docs/' }) }
   },

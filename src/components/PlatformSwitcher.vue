@@ -5,6 +5,7 @@ import { usePlatformStore } from '../stores/platform'
 
 const platformStore = usePlatformStore()
 const { selectedPlatform, platformOptions } = storeToRefs(platformStore)
+const { setPlatform } = platformStore
 
 const platformMeta = {
   linked: {
@@ -14,8 +15,8 @@ const platformMeta = {
   },
   official: {
     icon: 'cloud',
-    accent: 'bg-sky-600 text-white dark:bg-sky-500 dark:text-slate-950',
-    idle: 'text-sky-700 dark:text-sky-300',
+    accent: 'bg-amber-600 text-white dark:bg-amber-500 dark:text-slate-950',
+    idle: 'text-amber-700 dark:text-amber-300',
   },
 }
 </script>
@@ -28,16 +29,24 @@ const platformMeta = {
       type="button"
       role="tab"
       :aria-selected="selectedPlatform === item.id"
+      :aria-disabled="item.availability !== 'available'"
+      :disabled="item.availability !== 'available'"
       class="inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-black uppercase tracking-wide transition sm:text-sm"
       :class="
-        selectedPlatform === item.id
+        item.availability !== 'available'
+          ? 'cursor-not-allowed bg-slate-100 text-slate-400 opacity-75 dark:bg-slate-800 dark:text-slate-500'
+          : selectedPlatform === item.id
           ? `${platformMeta[item.id].accent} shadow-sm`
           : `bg-transparent ${platformMeta[item.id].idle} hover:bg-slate-100 dark:hover:bg-slate-800`
       "
-      @click="selectedPlatform = item.id"
+      :title="item.availability === 'available' ? item.label : `${item.label} coming soon`"
+      @click="setPlatform(item.id)"
     >
       <AppIcon :name="platformMeta[item.id].icon" class="h-4 w-4" />
       <span class="hidden md:inline">{{ item.label }}</span>
+      <span v-if="item.availability !== 'available'" class="hidden rounded bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-700 md:inline dark:bg-amber-950 dark:text-amber-200">
+        Soon
+      </span>
     </button>
   </div>
 </template>

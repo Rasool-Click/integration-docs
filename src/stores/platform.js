@@ -18,13 +18,13 @@ const PLATFORM_CONFIG = {
     id: 'official',
     label: 'Official API',
     shortLabel: 'Official',
-    status: 'Live',
-    description: 'Production API for tenants sending through Wessaal Official WhatsApp Cloud accounts.',
-    baseUrl: 'https://official.wessaal.com/api/official/v1',
+    status: 'Coming soon',
+    description: 'Official WhatsApp Cloud API integration documentation is being prepared and is not available yet.',
+    baseUrl: '',
     authLabel: 'API key',
-    authHeader: 'X-API-Key',
-    authExample: 'X-API-Key: apitk_your_key',
-    availability: 'available',
+    authHeader: 'Coming soon',
+    authExample: '',
+    availability: 'coming_soon',
   },
 }
 
@@ -34,7 +34,7 @@ export const usePlatformStore = defineStore('platform', () => {
   const platformOptions = computed(() => Object.values(PLATFORM_CONFIG))
   const platformConfig = computed(() => PLATFORM_CONFIG[selectedPlatform.value])
   function setPlatform(platformId) {
-    if (PLATFORM_CONFIG[platformId]) {
+    if (PLATFORM_CONFIG[platformId]?.availability === 'available') {
       selectedPlatform.value = platformId
     }
   }

@@ -13,7 +13,7 @@ export const routes = [
   },
   {
     path: '/official',
-    component: () => import('../components/Layout.vue'), // Lazy-load placeholder
+    redirect: '/linked',
   },
   {
     path: '/:pathMatch(.*)*',
