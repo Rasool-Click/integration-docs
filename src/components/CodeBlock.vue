@@ -64,7 +64,7 @@ const copyToClipboard = async () => {
 </script>
 
 <template>
-  <div class="relative group rounded-lg overflow-hidden bg-[#24292e]">
+  <div class="relative group rounded-lg overflow-hidden bg-brand-950">
     <div class="absolute right-2 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
       <button
         @click="copyToClipboard"
@@ -72,7 +72,7 @@ const copyToClipboard = async () => {
         aria-live="polite"
         class="flex items-center justify-center p-2 rounded-md bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/10 focus-ring"
       >
-        <span v-if="isCopied" class="flex items-center gap-2 text-xs font-medium text-emerald-400" aria-hidden="true">
+        <span v-if="isCopied" class="flex items-center gap-2 text-xs font-medium text-brand-300" aria-hidden="true">
           <CheckIcon class="w-4 h-4" /> Copied!
         </span>
         <CopyIcon v-else class="w-4 h-4 text-gray-300" aria-hidden="true" />

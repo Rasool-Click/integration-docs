@@ -21,6 +21,7 @@ import {
   Link2,
   ListChecks,
   LockKeyhole,
+  Menu,
   MessageSquareText,
   Moon,
   Search,
@@ -34,6 +35,7 @@ import {
   Users,
   Webhook,
   Workflow,
+  X,
   XCircle,
 } from '@lucide/vue'
 
@@ -69,6 +71,7 @@ const icons = {
   link: Link2,
   list: ListChecks,
   lock: LockKeyhole,
+  menu: Menu,
   message: MessageSquareText,
   moon: Moon,
   search: Search,
@@ -82,7 +85,7 @@ const icons = {
   users: Users,
   webhook: Webhook,
   workflow: Workflow,
-  x: XCircle,
+  x: X,
   warning: AlertTriangle,
 }
 
