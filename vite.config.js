@@ -4,7 +4,7 @@ import { visualizer } from 'rollup-plugin-visualizer'
 import generateSitemap from 'vite-ssg-sitemap'
 
 export default defineConfig({
-  base: process.env.VERCEL === '1' ? '/' : '/docs/',
+  base: '/',
   plugins: [
     vue(),
     visualizer({
@@ -21,7 +21,7 @@ export default defineConfig({
       // return all static paths and custom routes defined in memory/requirements
       return paths.concat(['/linked'])
     },
-    onFinished() { generateSitemap({ hostname: 'https://wessaal.com/docs/' }) }
+    onFinished() { generateSitemap({ hostname: 'https://docs.wessaal.com/' }) }
   },
   build: {
     rollupOptions: {
