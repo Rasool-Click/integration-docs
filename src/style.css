@@ -1,8 +1,9 @@
 /*
+  WESSAAL Developer Docs — Global Styles
   Using a <link> tag in index.html is better for performance than @import in CSS.
   Preload hints can be handled by Vite/Unhead.
 */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -16,7 +17,7 @@
   }
 
   ::selection {
-    background: #0e7490;
+    background: #465FF1;
     color: #f8fafc;
   }
 
@@ -27,7 +28,7 @@
   }
 
   * {
-    scrollbar-color: #0e7490 #e2e8f0;
+    scrollbar-color: #465FF1 #e2e8f0;
     scrollbar-width: thin;
   }
 
@@ -42,30 +43,30 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #0e7490;
+    background: #465FF1;
     border-radius: 999px;
     border: 1px solid #e2e8f0;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #155e75;
+    background: #3b52d4;
   }
 
   .dark ::-webkit-scrollbar-track {
-    background: #1e293b;
+    background: #1a1a3e;
   }
 
   .dark ::-webkit-scrollbar-thumb {
-    background: #0e7490;
-    border-color: #1e293b;
+    background: #465FF1;
+    border-color: #1a1a3e;
   }
 
   .dark ::-webkit-scrollbar-thumb:hover {
-    background: #22d3ee;
+    background: #73C0FC;
   }
 
   .dark * {
-    scrollbar-color: #0e7490 #1e293b;
+    scrollbar-color: #465FF1 #1a1a3e;
   }
 
   img,
@@ -73,5 +74,26 @@
   video,
   canvas {
     max-width: 100%;
+  }
+
+  /* Mobile navigation drawer */
+  .drawer-enter-active,
+  .drawer-leave-active {
+    transition: opacity 0.2s ease;
+  }
+
+  .drawer-enter-from,
+  .drawer-leave-to {
+    opacity: 0;
+  }
+
+  .drawer-enter-active .mobile-drawer-panel,
+  .drawer-leave-active .mobile-drawer-panel {
+    transition: transform 0.25s ease;
+  }
+
+  .drawer-enter-from .mobile-drawer-panel,
+  .drawer-leave-to .mobile-drawer-panel {
+    transform: translateX(-100%);
   }
 }

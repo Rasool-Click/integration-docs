@@ -1,31 +1,48 @@
-export const NAV_ITEMS = [
-  { id: 'overview', label: 'Overview', icon: 'book' },
-  { id: 'authentication', label: 'Authentication', icon: 'key' },
-  { id: 'quickstart', label: 'Quickstart', icon: 'list' },
-  { id: 'endpoints', label: 'Linked Endpoints', icon: 'terminal' },
-  { id: 'responses', label: 'Responses', icon: 'shield' },
-  { id: 'official', label: 'Official API Soon', icon: 'cloud' },
+export const NAV_GROUPS = [
+  {
+    label: 'Getting Started',
+    items: [
+      { id: 'overview', label: 'Overview', icon: 'book' },
+      { id: 'authentication', label: 'Authentication', icon: 'key' },
+      { id: 'quickstart', label: 'Quickstart', icon: 'list' },
+    ],
+  },
+  {
+    label: 'API Reference',
+    items: [
+      { id: 'endpoints', label: 'Endpoints', icon: 'terminal' },
+    ],
+  },
+  {
+    label: 'Help',
+    items: [
+      { id: 'responses', label: 'Responses', icon: 'shield' },
+    ],
+  },
 ]
+
+// Flat list for mobile tabs
+export const NAV_ITEMS = NAV_GROUPS.flatMap(group => group.items)
 
 export const DOC_SECTIONS = [
   {
     id: 'overview',
     type: 'content',
     icon: 'book',
-    title: 'Integration Documentation',
-    eyebrow: 'Developer portal',
+    title: 'Overview',
     summary:
-      'Wessaal currently exposes the Linked Devices integration track. Official API integration content is marked as coming soon while the public contract is being finalized.',
+      'The WESSAAL Linked Devices API lets you send WhatsApp messages through connected devices, track delivery, manage contacts, templates, and workspaces — all authenticated with a single API key.',
     bullets: [
-      'Linked Devices endpoints are served under /integration/v1 and require a valid X-API-Key header.',
-      'API keys are permission-scoped, so each endpoint group requires the matching permission.',
-      'Successful send requests queue WhatsApp messages and return the local Wessaal message_id for tracking.',
-      'Official API integration content and endpoints are coming soon and are not reachable yet.',
+      'Endpoints live under /integration/v1 and require a valid X-API-Key header.',
+      'API keys are permission-scoped, so each endpoint group needs the matching permission.',
+      'Send requests on POST /messages/send and POST /messages/send-bulk queue WhatsApp messages and return a WESSAAL message_id to track delivery.',
+      'POST /otp/send is a separate time-sensitive, controlled-access OTP flow — it does not use the queued messaging pipeline.',
+      'Use GET /ping to verify your key and GET /me to inspect its scope.',
     ],
     cards: [
-      { label: 'Live platform', value: 'Linked Devices', icon: 'smartphone' },
-      { label: 'Base path', value: '/integration/v1', icon: 'server' },
-      { label: 'Authentication', value: 'X-API-Key', icon: 'lock' },
+      { label: 'Base URL', value: 'https://app.wessaal.com/integration/v1', icon: 'server' },
+      { label: 'Authentication', value: 'X-API-Key header', icon: 'lock' },
+      { label: 'Format', value: 'JSON request & response', icon: 'file' },
     ],
   },
   {
@@ -33,15 +50,14 @@ export const DOC_SECTIONS = [
     type: 'content',
     icon: 'key',
     title: 'Authentication',
-    eyebrow: 'API keys',
     summary:
-      'Send the API key with every Linked Devices request. The backend middleware reads the authenticated key and enforces the permission required by the route group.',
+      'Send your API key with every request. The backend reads the authenticated key and enforces the permission required by the route you call.',
     code: `curl "https://app.wessaal.com/integration/v1/ping" \\
   -H "X-API-Key: sk_live_your_key"`,
     bullets: [
-      'Create separate keys per integration or environment.',
-      'Grant only the permissions required by that integration.',
-      'Rotate exposed keys immediately and update the external service using them.',
+      'Create a separate key per integration or environment.',
+      'Grant only the permissions that integration needs.',
+      'Rotate any exposed key immediately and update the service using it.',
     ],
   },
   {
@@ -49,53 +65,38 @@ export const DOC_SECTIONS = [
     type: 'content',
     icon: 'list',
     title: 'Quickstart',
-    eyebrow: 'Recommended flow',
     summary:
-      'Start with a health check, inspect the authenticated key, list available instances, then queue a message using an instance ID or instance_name.',
+      'Verify your key, confirm its scope, pick a sender instance, then queue a message and track it. Five calls, end to end:',
     steps: [
       { title: 'Verify the key', text: 'Call GET /ping. A valid key returns success=true and message=pong.' },
       { title: 'Inspect scope', text: 'Call GET /me to confirm the key owner and permissions.' },
       { title: 'Choose sender', text: 'Call GET /instances with manage_instances permission and pick an instance.' },
       { title: 'Queue message', text: 'Call POST /messages/send with send_message permission.' },
-      { title: 'Track delivery', text: 'Use GET /messages/{messageId}/status or GET /messages/{messageId}.' },
+      { title: 'Track delivery', text: 'Poll GET /messages/{messageId}/status or GET /messages/{messageId}.' },
     ],
   },
   {
     id: 'responses',
     type: 'content',
     icon: 'shield',
-    title: 'Responses and Errors',
-    eyebrow: 'Production handling',
+    title: 'Responses and errors',
     summary:
-      'Responses are JSON. Send endpoints return queued messages, validation failures return field-level errors, and policy or credit failures include an error_code when available.',
+      'Every response is JSON. Send endpoints return accepted messages, validation failures return field-level errors, and credit or policy failures include an error_code when one exists.',
     bullets: [
-      '202 Accepted: single message accepted and queued.',
+      '202 Accepted: message accepted — queued on /messages/send, synchronously dispatched on /otp/send.',
       '200 OK: list, read, health, and bulk responses.',
       '402 Payment Required: insufficient credits.',
-      '403 Forbidden: missing permission or outbound policy block.',
-      '404 Not Found: instance, workspace, contact, template, or message is unavailable to the authenticated user.',
+      '403 Forbidden: missing permission or an outbound policy block.',
+      '404 Not Found: the instance, workspace, contact, template, or message is unavailable to the authenticated user.',
       '422 Unprocessable Entity: validation failure, unsupported template type, blocked contact, or unavailable template.',
       '500 Internal Server Error: unexpected queueing or provider failure.',
-    ],
-  },
-  {
-    id: 'official',
-    type: 'content',
-    icon: 'cloud',
-    title: 'Official API',
-    eyebrow: 'Coming soon',
-    summary:
-      'Official integration is coming soon. The documentation, endpoint reference, request examples, and production access for this platform are intentionally unavailable right now.',
-    bullets: [
-      'Official endpoint content is hidden from the active endpoint reference until launch.',
-      'The /official documentation route redirects to the available Linked Devices docs.',
-      'API keys, scopes, examples, and production URLs will be published when the Official API is released.',
     ],
   },
 ]
 
 export const PERMISSIONS = [
   { key: 'send_message', label: 'Queue one or more messages.' },
+  { key: 'send_otp', label: 'Send controlled one-time verification codes through an approved Linked Devices workspace.' },
   { key: 'read_messages', label: 'Read message records and delivery status.' },
   { key: 'manage_instances', label: 'List and inspect connected sender instances.' },
   { key: 'manage_contacts', label: 'Create, update, read, and delete contacts.' },
@@ -221,13 +222,58 @@ export const ENDPOINTS = [
     },
   },
   {
+    id: 'otp-send',
+    group: 'OTP',
+    title: 'Send OTP',
+    description:
+      'Controlled-access endpoint that delivers a time-sensitive one-time verification code through an approved Linked Devices workspace. It is a separate synchronous flow: WESSAAL renders the OTP message server-side and dispatches it immediately, rather than queuing it like the /messages/send and /messages/send-bulk endpoints.',
+    notes: [
+      'Controlled access: the API key must include the send_otp permission, WESSAAL must enable Linked OTP for the workspace, and access may be limited to approved workspaces.',
+      'Idempotency-Key (required header): 8 to 128 characters using A-Z, a-z, 0-9, ., _, :, -. Generate a unique key per logical OTP send attempt.',
+      'Replay: sending the same Idempotency-Key with the same request returns the existing dispatch result instead of sending another OTP.',
+      'Idempotency conflict: reusing an Idempotency-Key for a different request returns HTTP 409 with code idempotency_conflict.',
+      'Server-rendered OTP: WESSAAL renders the OTP message server-side, so content, message, template_id, and template_variables are prohibited — arbitrary message content is not accepted.',
+      'Ambiguous delivery: if the provider times out or the outcome is unknown, the request returns 202 Accepted with code otp_delivery_ambiguous and status ambiguous. DO NOT automatically resend an ambiguous request — a blind retry could deliver a duplicate OTP.',
+      'Rate limiting: OTP delivery is protected by API-key, workspace, recipient, and sender-level rate controls. HTTP 429 may include retry_after_seconds and/or a Retry-After header — respect the indicated interval before retrying.',
+      'Not queued: /otp/send is a synchronous, time-sensitive OTP path, separate from the queued messaging flow used by /messages/send and /messages/send-bulk.',
+      'Errors: 403 otp_api_disabled, 403 otp_workspace_not_allowed, 404 otp_instance_not_found, 409 idempotency_conflict, 422 otp_validation_failed, 422 not_on_whatsapp, 429 otp_rate_limited or otp_sender_throttled, 502 otp_delivery_failed.',
+    ],
+    method: 'POST',
+    path: '/otp/send',
+    permission: 'send_otp',
+    responseStatus: '202 Accepted',
+    bodyExample: {
+      instance: 'main-whatsapp',
+      recipient: '+966501234567',
+      code: '123456',
+      locale: 'ar',
+      expiry_minutes: 5,
+    },
+    parameters: [
+      { name: 'Idempotency-Key', type: 'string', required: true, description: 'Required request header. Minimum 8 and maximum 128 characters. Allowed characters: A-Z, a-z, 0-9, ., _, :, -. Unique per logical OTP send attempt.' },
+      { name: 'instance', type: 'string', required: true, description: 'Instance ID or instance_name.' },
+      { name: 'recipient', type: 'string', required: true, description: 'Recipient phone number in E.164 format. Example: +966501234567.' },
+      { name: 'code', type: 'string', required: true, description: 'Numeric verification code, 4 to 8 digits.' },
+      { name: 'locale', type: 'string', required: false, description: 'OTP message language: ar or en. Defaults to ar.' },
+      { name: 'expiry_minutes', type: 'integer', required: false, description: 'Code expiry in minutes. Minimum 1, defaults to 5.' },
+    ],
+    responseExample: {
+      success: true,
+      data: {
+        dispatch_id: 123,
+        status: 'sent',
+        replayed: false,
+      },
+    },
+  },
+  {
     id: 'message-status',
     group: 'Messages',
     title: 'Message Delivery Status',
     description: 'Read the delivery status for a message ID returned by a send endpoint.',
     method: 'GET',
     path: '/messages/{messageId}/status',
-    permission: 'send_message',
+    permission: 'read_messages',
     responseStatus: '200 OK',
     parameters: [{ name: 'messageId', type: 'integer', required: true, description: 'Wessaal message ID.' }],
   },
@@ -394,9 +440,4 @@ export const ENDPOINTS = [
   },
 ]
 
-ENDPOINTS.forEach((endpoint) => {
-  endpoint.platform ??= 'linked'
-  endpoint.platformLabel ??= 'Linked Devices'
-})
-
-export const ENDPOINT_GROUPS = ['All', 'Health', 'Messages', 'Instances', 'Contacts', 'Templates', 'Workspaces']
+export const ENDPOINT_GROUPS = ['All', 'Health', 'Messages', 'OTP', 'Instances', 'Contacts', 'Templates', 'Workspaces']

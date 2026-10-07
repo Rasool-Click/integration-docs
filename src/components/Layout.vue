@@ -1,18 +1,11 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { storeToRefs } from 'pinia'
-import PlatformSwitcher from './PlatformSwitcher.vue'
 import SidebarNav from './SidebarNav.vue'
 import EndpointSection from './EndpointSection.vue'
 import AppIcon from './AppIcon.vue'
-import { DOC_SECTIONS, ENDPOINT_GROUPS, ENDPOINTS, NAV_ITEMS, PERMISSIONS } from '../data/docs'
-import { usePlatformStore } from '../stores/platform'
-import logoUrl from '../assets/wessaal-logo.svg'
-
-const BRAND_ASSETS_ENDPOINT = 'https://app.wessaal.com/api/logo'
-
-const platformStore = usePlatformStore()
-const { selectedPlatform, platformConfig } = storeToRefs(platformStore)
+import { DOC_SECTIONS, ENDPOINT_GROUPS, ENDPOINTS, NAV_GROUPS, PERMISSIONS } from '../data/docs'
+import logoNavy from '../assets/brand/wessaal-logo-on-navy.svg'
+import mark from '../assets/brand/wessaal-mark.png'
 
 const isDark = ref(false)
 const activeSection = ref('overview')
@@ -22,22 +15,15 @@ const selectedGroup = ref('All')
 const developerSearch = ref('')
 const isDeveloperSearchFocused = ref(false)
 const developerSearchWrapper = ref(null)
-const brandAssets = ref({
-  logo: logoUrl,
-  logo_full: logoUrl,
-  logo_light: '',
-  logo_dark: '',
-  favicon: '',
-})
+const mobileNavOpen = ref(false)
 
 const endpointSections = computed(() => {
   const query = search.value.trim().toLowerCase()
 
   return ENDPOINTS.filter((endpoint) => {
-    const platformMatches = (endpoint.platform || 'linked') === selectedPlatform.value
     const groupMatches = selectedGroup.value === 'All' || endpoint.group === selectedGroup.value
     const searchable = `${endpoint.title} ${endpoint.description} ${endpoint.method} ${endpoint.path} ${endpoint.permission} ${endpoint.group}`.toLowerCase()
-    return platformMatches && groupMatches && (!query || searchable.includes(query))
+    return groupMatches && (!query || searchable.includes(query))
   })
 })
 
@@ -45,22 +31,22 @@ const quickHighlights = computed(() => [
   {
     id: 'base',
     label: 'Base URL',
-    value: platformConfig.value.baseUrl || 'Pending backend contract',
+    value: 'https://app.wessaal.com/integration/v1',
     icon: 'server',
-    mono: Boolean(platformConfig.value.baseUrl),
+    mono: true,
   },
   {
     id: 'auth',
     label: 'Authentication',
-    value: platformConfig.value.authHeader,
+    value: 'X-API-Key',
     icon: 'lock',
-    mono: selectedPlatform.value === 'linked',
+    mono: true,
   },
   {
     id: 'status',
-    label: 'Platform Status',
-    value: platformConfig.value.status,
-    icon: selectedPlatform.value === 'linked' ? 'activity' : 'clock',
+    label: 'Status',
+    value: 'Live',
+    icon: 'activity',
     mono: false,
   },
 ])
@@ -72,7 +58,6 @@ const developerResults = computed(() => {
   const sectionMatches = DOC_SECTIONS.filter((section) => {
     const sectionText = [
       section.title,
-      section.eyebrow,
       section.summary,
       ...(section.bullets || []),
       ...((section.cards || []).map((card) => `${card.label} ${card.value}`)),
@@ -93,8 +78,6 @@ const developerResults = computed(() => {
   }))
 
   const endpointMatches = ENDPOINTS.filter((endpoint) => {
-    if ((endpoint.platform || 'linked') !== selectedPlatform.value) return false
-
     const endpointText = `${endpoint.title} ${endpoint.description} ${endpoint.method} ${endpoint.path} ${endpoint.permission} ${endpoint.group}`.toLowerCase()
     return endpointText.includes(query)
   }).map((endpoint) => ({
@@ -112,46 +95,6 @@ const developerResults = computed(() => {
 
 const showDeveloperResults = computed(() => isDeveloperSearchFocused.value && developerSearch.value.trim().length > 0)
 
-const headerLogoSrc = computed(() => {
-  if (isDark.value) return brandAssets.value.logo_dark || brandAssets.value.logo_full || brandAssets.value.logo || logoUrl
-  return brandAssets.value.logo_light || brandAssets.value.logo_full || brandAssets.value.logo || logoUrl
-})
-
-function setFavicon(url) {
-  if (!url) return
-  let favicon = document.querySelector('link[rel="icon"]')
-
-  if (!favicon) {
-    favicon = document.createElement('link')
-    favicon.setAttribute('rel', 'icon')
-    document.head.appendChild(favicon)
-  }
-
-  favicon.setAttribute('href', url)
-}
-
-async function loadBrandAssets() {
-  try {
-    const response = await fetch(BRAND_ASSETS_ENDPOINT)
-    if (!response.ok) return
-
-    const payload = await response.json()
-    if (!payload?.success || !payload?.data) return
-
-    brandAssets.value = {
-      logo: payload.data.logo || logoUrl,
-      logo_full: payload.data.logo_full || payload.data.logo || logoUrl,
-      logo_light: payload.data.logo_light || '',
-      logo_dark: payload.data.logo_dark || '',
-      favicon: payload.data.favicon || '',
-    }
-
-    setFavicon(brandAssets.value.favicon)
-  } catch {
-    // Keep local fallback assets if network request fails.
-  }
-}
-
 function setTheme(nextDark) {
   isDark.value = nextDark
   document.documentElement.classList.toggle('dark', nextDark)
@@ -166,6 +109,22 @@ function handleOutsideClick(event) {
     isDeveloperSearchFocused.value = false
   }
 }
+
+function toggleMobileNav() {
+  mobileNavOpen.value = !mobileNavOpen.value
+}
+
+function closeMobileNav() {
+  mobileNavOpen.value = false
+}
+
+function handleMobileNavKeydown(event) {
+  if (event.key === 'Escape') closeMobileNav()
+}
+
+watch(mobileNavOpen, (open) => {
+  document.body.style.overflow = open ? 'hidden' : ''
+})
 
 async function goToDeveloperResult(result) {
   if (result.kind === 'Endpoint') {
@@ -212,16 +171,17 @@ function setupScrollSpy() {
 onMounted(() => {
   initTheme()
   document.addEventListener('click', handleOutsideClick)
-  loadBrandAssets()
+  document.addEventListener('keydown', handleMobileNavKeydown)
   setupScrollSpy()
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleOutsideClick)
+  document.removeEventListener('keydown', handleMobileNavKeydown)
   observer.value?.disconnect()
 })
 
-watch([selectedPlatform, endpointSections], () => {
+watch(endpointSections, () => {
   window.requestAnimationFrame(() => {
     observer.value?.disconnect()
     setupScrollSpy()
@@ -230,29 +190,29 @@ watch([selectedPlatform, endpointSections], () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#f6f8f4] text-slate-800 dark:bg-slate-950 dark:text-slate-100">
-    <header class="sticky top-0 z-40 border-b border-slate-200/80 bg-[#f6f8f4]/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90" role="banner">
-      <div class="mx-auto max-w-[1680px] px-4 py-3 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-brand-50/40 text-slate-700 dark:bg-brand-950 dark:text-slate-200">
+    <!-- Header -->
+    <header
+      class="sticky top-0 z-40 border-b border-white/10 bg-brand-900/95 backdrop-blur-xl"
+      role="banner"
+    >
+      <div class="mx-auto max-w-[1680px] px-4 py-3.5 sm:px-6 lg:px-8">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <a href="#overview" class="flex min-w-0 items-center gap-3" aria-label="Wessaal Developer Documentation">
-            <img :src="headerLogoSrc" alt="Wessaal" class="h-10 w-auto shrink-0" />
-            <span class="hidden h-7 w-px bg-slate-300 dark:bg-slate-700 sm:block" />
-            <span class="hidden min-w-0 sm:block">
-              <span class="block text-xs font-black uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">Developer Docs</span>
-              <span class="block text-sm font-black text-slate-950 dark:text-white">Integration APIs</span>
-            </span>
+          <a href="#overview" class="flex min-w-0 items-center" aria-label="WESSAAL Developer Documentation">
+            <img :src="logoNavy" alt="WESSAAL" class="hidden h-16 w-auto shrink-0 sm:block" />
+            <img :src="mark" alt="WESSAAL" class="h-10 w-auto shrink-0 sm:hidden" />
           </a>
 
           <div ref="developerSearchWrapper" class="relative order-3 w-full md:order-2 md:max-w-xl md:flex-1">
             <label class="relative block" for="dev-search">
-              <span class="sr-only">Search docs for developers</span>
-              <AppIcon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+              <span class="sr-only">Search the developer documentation</span>
+              <AppIcon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-300/70" aria-hidden="true" />
               <input
                 id="dev-search"
                 v-model="developerSearch"
                 type="search"
-                placeholder="Search docs for developers"
-                class="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-9 text-sm font-bold text-slate-700 outline-none ring-0 focus-ring dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                placeholder="Search endpoints, guides, permissions"
+                class="h-11 w-full rounded-lg border border-white/15 bg-white/10 pl-9 pr-9 text-sm font-medium text-white placeholder:text-brand-300/60 outline-none ring-0 transition focus:border-brand-400 focus:bg-white focus:text-slate-900 focus:placeholder:text-slate-400"
                 @focus="isDeveloperSearchFocused = true"
                 @keydown.enter.prevent="goToFirstDeveloperResult"
                 @keydown.esc="isDeveloperSearchFocused = false"
@@ -261,7 +221,7 @@ watch([selectedPlatform, endpointSections], () => {
                 v-if="developerSearch"
                 type="button"
                 aria-label="Clear search"
-                class="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus-ring dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                class="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-md text-brand-300 hover:bg-white/10 hover:text-white"
                 @click="developerSearch = ''"
               >
                 <AppIcon name="x" class="h-4 w-4" aria-hidden="true" />
@@ -270,188 +230,231 @@ watch([selectedPlatform, endpointSections], () => {
 
             <div
               v-if="showDeveloperResults"
-              class="absolute left-0 right-0 z-50 mt-2 max-h-[340px] w-full overflow-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-950"
+              class="absolute left-0 right-0 z-50 mt-2 max-h-[340px] w-full overflow-auto rounded-xl border border-brand-100 bg-white p-2 shadow-xl"
             >
               <button
                 v-for="result in developerResults"
                 :key="result.id"
                 type="button"
-                class="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-slate-100 dark:hover:bg-slate-900"
+                class="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-brand-50"
                 @click="goToDeveloperResult(result)"
               >
-                <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-brand-100 text-brand-600">
                   <AppIcon :name="result.icon" class="h-4 w-4" />
                 </span>
                 <span class="min-w-0">
-                  <span class="block truncate text-sm font-black text-slate-900 dark:text-slate-100">{{ result.title }}</span>
-                  <span class="block truncate text-xs text-slate-500 dark:text-slate-400">{{ result.subtitle }}</span>
+                  <span class="block truncate text-sm font-semibold text-slate-900">{{ result.title }}</span>
+                  <span class="block truncate text-xs text-slate-500">{{ result.subtitle }}</span>
                 </span>
-                <span class="ml-auto rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                <span class="ml-auto rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
                   {{ result.kind }}
                 </span>
               </button>
 
-              <p v-if="developerResults.length === 0" class="px-3 py-2 text-sm font-bold text-slate-500 dark:text-slate-400">
-                No results found. Try endpoint name, path, or section title.
+              <p v-if="developerResults.length === 0" class="px-3 py-2 text-sm font-medium text-slate-500">
+                No results. Try an endpoint name, path, or section title.
               </p>
             </div>
           </div>
 
-          <div class="order-2 flex shrink-0 items-center gap-2 md:order-3">
-            <PlatformSwitcher />
-            <a
-              href="#endpoints"
-              class="hidden items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-800 shadow-sm hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 sm:inline-flex"
-            >
-              <AppIcon name="search" class="h-4 w-4" />
-              <span class="hidden md:inline">Browse endpoints</span>
-              <span class="md:hidden">Endpoints</span>
-            </a>
+          <div class="order-2 flex shrink-0 items-center gap-1.5 md:order-3">
             <button
               type="button"
-              class="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-sm font-black text-white shadow-sm hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+              class="grid h-11 w-11 place-items-center rounded-lg text-brand-200 transition hover:bg-white/10 hover:text-white lg:hidden"
+              aria-label="Open documentation menu"
+              aria-controls="mobile-nav-drawer"
+              :aria-expanded="mobileNavOpen"
+              @click="toggleMobileNav"
+            >
+              <AppIcon name="menu" class="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              class="grid h-11 w-11 place-items-center rounded-lg text-brand-200 transition hover:bg-white/10 hover:text-white"
+              :aria-label="isDark ? 'Switch to light theme' : 'Switch to dark theme'"
+              :title="isDark ? 'Switch to light theme' : 'Switch to dark theme'"
               @click="setTheme(!isDark)"
             >
-              <AppIcon :name="isDark ? 'sun' : 'moon'" class="h-4 w-4" />
-              <span class="hidden sm:inline">{{ isDark ? 'Light' : 'Dark' }}</span>
+              <AppIcon :name="isDark ? 'sun' : 'moon'" class="h-5 w-5" />
             </button>
           </div>
         </div>
       </div>
     </header>
 
-    <main id="main-content">
-      <section class="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950" aria-labelledby="intro-heading">
-        <div class="mx-auto max-w-[1680px] px-4 py-7 sm:px-6 lg:px-8 lg:py-10">
-          <div class="min-w-0">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800">
-                Linked Devices live
-              </span>
-              <span class="rounded-md bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-800">
-                Official coming soon
-              </span>
+    <!-- Mobile navigation drawer -->
+    <transition name="drawer">
+      <div
+        v-if="mobileNavOpen"
+        class="fixed inset-0 z-50 lg:hidden"
+        role="presentation"
+      >
+        <div
+          class="absolute inset-0 bg-brand-950/60 backdrop-blur-sm"
+          aria-hidden="true"
+          @click="closeMobileNav"
+        ></div>
+        <aside
+          id="mobile-nav-drawer"
+          class="mobile-drawer-panel absolute inset-y-0 left-0 flex w-[300px] max-w-[85vw] flex-col overflow-y-auto bg-white shadow-2xl dark:bg-brand-950"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Documentation sections"
+        >
+          <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+            <img :src="mark" alt="WESSAAL" class="h-9 w-auto" />
+            <button
+              type="button"
+              class="grid h-10 w-10 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+              aria-label="Close documentation menu"
+              @click="closeMobileNav"
+            >
+              <AppIcon name="x" class="h-5 w-5" />
+            </button>
+          </div>
+          <nav class="flex-1 space-y-6 px-3 py-5" aria-label="Documentation sections">
+            <div v-for="group in NAV_GROUPS" :key="group.label">
+              <p class="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                {{ group.label }}
+              </p>
+              <div class="mt-2.5 grid gap-1">
+                <a
+                  v-for="item in group.items"
+                  :key="item.id"
+                  :href="`#${item.id}`"
+                  class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium text-slate-700 transition hover:bg-brand-50 hover:text-brand-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
+                  :class="activeSection === item.id ? 'bg-brand-100/80 font-semibold text-brand-700 dark:bg-brand-500/15 dark:text-brand-300' : ''"
+                  @click="closeMobileNav"
+                >
+                  <AppIcon :name="item.icon || 'book'" class="h-[18px] w-[18px] shrink-0" />
+                  {{ item.label }}
+                </a>
+              </div>
             </div>
-            <h1 id="intro-heading" class="mt-5 max-w-5xl text-3xl font-black leading-[1.08] tracking-tight text-slate-950 dark:text-white sm:text-4xl md:text-5xl xl:text-6xl">
-              Production documentation for Wessaal integration developers.
+          </nav>
+        </aside>
+      </div>
+    </transition>
+
+    <main id="main-content">
+      <!-- Hero -->
+      <section class="relative border-b border-white/10 bg-brand-900" aria-labelledby="intro-heading">
+        <div class="mx-auto max-w-[1680px] px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+          <div class="max-w-4xl">
+            <h1 id="intro-heading" class="max-w-3xl text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl">
+              WESSAAL Linked Devices API
             </h1>
-            <p class="mt-5 max-w-3xl text-base leading-8 text-slate-600 dark:text-slate-300">
-              Linked Devices documentation is live for developers. Official API integration is marked coming soon and is not reachable until its public contract is ready.
+            <p class="mt-3 max-w-2xl text-lg leading-8 text-brand-100">
+              Send WhatsApp messages through connected devices, track delivery, and manage contacts, templates, and workspaces — all authenticated with a single API key.
             </p>
 
-            <div class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              <article
+            <dl class="mt-6 grid gap-px overflow-hidden rounded-xl bg-white/10 sm:grid-cols-3">
+              <div
                 v-for="highlight in quickHighlights"
                 :key="highlight.id"
-                class="rounded-xl border border-slate-200 bg-[#f6f8f4] p-4 dark:border-slate-800 dark:bg-slate-900/70"
+                class="bg-brand-900/80 p-4 sm:p-5"
               >
-                <p class="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                <dt class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-brand-300">
                   <AppIcon :name="highlight.icon" class="h-4 w-4" />
                   {{ highlight.label }}
-                </p>
-                <p
-                  class="mt-2 text-sm font-black text-slate-950 dark:text-white"
-                  :class="highlight.mono ? 'break-all font-mono text-[12px]' : ''"
+                </dt>
+                <dd
+                  class="mt-1.5 text-[15px] font-semibold text-white"
+                  :class="highlight.mono ? 'break-words font-mono text-[14px] font-medium' : ''"
                 >
                   {{ highlight.value }}
-                </p>
-              </article>
-            </div>
+                </dd>
+              </div>
+            </dl>
           </div>
         </div>
       </section>
 
-      <div class="mx-auto grid max-w-[1680px] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:px-8 xl:grid-cols-[300px_minmax(0,1fr)]">
+      <div class="mx-auto grid max-w-[1680px] grid-cols-[minmax(0,1fr)] gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:px-8 xl:grid-cols-[300px_minmax(0,1fr)]">
         <aside class="hidden lg:block" aria-label="Sidebar Navigation">
-          <SidebarNav :items="NAV_ITEMS" :active-section="activeSection" />
+          <SidebarNav :groups="NAV_GROUPS" :active-section="activeSection" />
         </aside>
 
-        <nav class="lg:hidden" aria-label="Documentation sections">
-          <div class="-mx-4 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6">
-            <div class="flex min-w-max gap-2">
-              <a
-                v-for="item in NAV_ITEMS"
-                :key="item.id"
-                :href="`#${item.id}`"
-                class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
-                :class="activeSection === item.id ? 'border-slate-950 bg-slate-950 text-white dark:border-white dark:bg-white dark:text-slate-950' : ''"
-              >
-                <AppIcon :name="item.icon || 'book'" class="h-4 w-4 shrink-0" />
-                {{ item.label }}
-              </a>
-            </div>
-          </div>
-        </nav>
-
-        <div class="min-w-0 space-y-6">
+        <div class="min-w-0 space-y-8">
+          <!-- Doc sections -->
           <section
             v-for="section in DOC_SECTIONS"
             :id="section.id"
             :key="section.id"
             data-doc-section
-            class="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/80 sm:p-6"
+            class="scroll-mt-36 md:scroll-mt-28"
           >
-            <div class="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p class="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">
-                  <AppIcon :name="section.icon || 'book'" class="h-4 w-4" />
-                  {{ section.eyebrow || 'Documentation' }}
-                </p>
-                <h2 class="mt-2 text-xl font-black tracking-tight text-slate-950 dark:text-white sm:text-2xl">{{ section.title }}</h2>
-              </div>
-            </div>
-            <p class="mt-3 max-w-4xl text-sm leading-7 text-slate-600 dark:text-slate-300">{{ section.summary }}</p>
+            <h2 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+              {{ section.title }}
+            </h2>
 
-            <div v-if="section.cards" class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <p class="mt-3 max-w-3xl text-base leading-7 text-slate-600 dark:text-slate-300">
+              {{ section.summary }}
+            </p>
+
+            <div v-if="section.cards" class="mt-6 grid gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 dark:border-slate-800 dark:bg-slate-800 sm:grid-cols-3">
               <article
                 v-for="card in section.cards"
                 :key="card.label"
-                class="rounded-lg border border-slate-200 bg-[#f6f8f4] p-4 dark:border-slate-800 dark:bg-slate-900"
+                class="bg-white p-4 dark:bg-brand-900/60"
               >
-                <p class="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  <AppIcon :name="card.icon" class="h-4 w-4" />
+                <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <AppIcon :name="card.icon" class="h-4 w-4 text-brand-500 dark:text-brand-300" />
                   {{ card.label }}
                 </p>
-                <p class="mt-2 break-words font-mono text-sm font-black text-slate-950 dark:text-white">{{ card.value }}</p>
+                <p class="mt-2 break-words font-mono text-sm font-semibold text-slate-900 dark:text-white">{{ card.value }}</p>
               </article>
             </div>
 
-            <pre v-if="section.code" class="mt-5 max-w-full overflow-auto rounded-lg bg-slate-950 p-4 text-[12px] leading-6 text-slate-100 sm:text-[13px]"><code class="font-mono">{{ section.code }}</code></pre>
+            <div v-if="section.code" class="mt-6 overflow-hidden rounded-xl border border-brand-500/20 bg-[#111128]">
+              <div class="flex items-center justify-between border-b border-white/10 bg-white/[0.03] px-4 py-2">
+                <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Example</p>
+              </div>
+              <pre class="max-w-full overflow-auto p-4 text-[13px] leading-6 text-slate-100"><code class="font-mono">{{ section.code }}</code></pre>
+            </div>
 
-            <ol v-if="section.steps" class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <ol v-if="section.steps" class="mt-6 space-y-0">
               <li
                 v-for="(step, index) in section.steps"
                 :key="step.title"
-                class="rounded-lg border border-slate-200 bg-[#f6f8f4] p-4 dark:border-slate-800 dark:bg-slate-900"
+                class="relative flex gap-4 pb-6 last:pb-0"
               >
-                <span class="grid h-7 w-7 place-items-center rounded-md bg-slate-950 text-xs font-black text-white dark:bg-white dark:text-slate-950">{{ index + 1 }}</span>
-                <h3 class="mt-3 text-sm font-black text-slate-950 dark:text-white">{{ step.title }}</h3>
-                <p class="mt-2 text-xs leading-5 text-slate-600 dark:text-slate-300">{{ step.text }}</p>
+                <span v-if="index < section.steps.length - 1" class="absolute left-[15px] top-9 h-full w-px bg-slate-200 dark:bg-slate-800" aria-hidden="true"></span>
+                <span class="z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border border-brand-200 bg-white text-sm font-bold text-brand-600 dark:border-brand-500/40 dark:bg-brand-900 dark:text-brand-300">
+                  {{ index + 1 }}
+                </span>
+                <div class="pt-0.5">
+                  <h3 class="text-[15px] font-semibold text-slate-900 dark:text-white">{{ step.title }}</h3>
+                  <p class="mt-1.5 text-[15px] leading-7 text-slate-600 dark:text-slate-300">{{ step.text }}</p>
+                </div>
               </li>
             </ol>
 
-            <ul v-if="section.bullets" class="mt-5 grid gap-2 text-sm text-slate-600 dark:text-slate-300 sm:grid-cols-2">
-              <li v-for="item in section.bullets" :key="item" class="flex items-start gap-2 rounded-lg bg-slate-50 p-3 dark:bg-slate-900/80">
-                <AppIcon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
+            <ul v-if="section.bullets" class="mt-6 space-y-3">
+              <li
+                v-for="item in section.bullets"
+                :key="item"
+                class="flex items-start gap-3 text-[15px] leading-7 text-slate-700 dark:text-slate-300"
+              >
+                <AppIcon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-500 dark:text-brand-300" />
                 <span>{{ item }}</span>
               </li>
             </ul>
           </section>
 
-          <section id="endpoints" data-doc-section class="scroll-mt-28 space-y-4">
-            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/80 sm:p-6">
-              <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <!-- Endpoint reference -->
+          <section id="endpoints" data-doc-section class="scroll-mt-36 md:scroll-mt-28">
+            <div class="mb-6">
+              <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                  <p class="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">
-                    <AppIcon name="terminal" class="h-4 w-4" />
-                    Endpoint reference
-                  </p>
-                  <h2 class="mt-2 text-xl font-black tracking-tight text-slate-950 dark:text-white sm:text-2xl">{{ platformConfig.shortLabel }} endpoints</h2>
-                  <p class="mt-2 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-300">
-                    These are the live Linked Devices routes. Permission names match the API key middleware scopes.
+                  <h2 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+                    API Reference
+                  </h2>
+                  <p class="mt-2 max-w-3xl text-base leading-7 text-slate-600 dark:text-slate-300">
+                    Live routes for the Linked Devices API. Permission names match the scopes applied to your API key.
                   </p>
                 </div>
-                <div class="grid w-full gap-2 sm:grid-cols-[minmax(0,1fr)_190px] xl:w-auto xl:min-w-[470px]">
+                <div class="grid w-full gap-2 sm:grid-cols-[minmax(0,1fr)_170px] lg:w-auto lg:min-w-[430px]">
                   <label class="relative block" for="endpoint-search">
                     <span class="sr-only">Search endpoints</span>
                     <AppIcon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
@@ -460,49 +463,59 @@ watch([selectedPlatform, endpointSections], () => {
                       v-model="search"
                       type="search"
                       placeholder="Search endpoints"
-                      class="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm font-bold outline-none ring-0 focus-ring dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                      class="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm font-medium text-slate-800 outline-none ring-0 focus:border-brand-500 focus-ring dark:border-slate-700 dark:bg-brand-900 dark:text-white"
                     />
                   </label>
                   <label for="endpoint-group" class="sr-only">Filter by group</label>
                   <select
                     id="endpoint-group"
                     v-model="selectedGroup"
-                    class="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold outline-none focus-ring dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                    class="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium outline-none focus:border-brand-500 focus-ring dark:border-slate-700 dark:bg-brand-900 dark:text-white"
                   >
                     <option v-for="group in ENDPOINT_GROUPS" :key="group" :value="group">{{ group }}</option>
                   </select>
                 </div>
               </div>
 
-              <div class="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                <article
+              <div class="mt-6 flex flex-wrap items-center gap-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Permissions</span>
+                <span
                   v-for="permission in PERMISSIONS"
                   :key="permission.key"
-                  class="rounded-lg border border-slate-200 bg-[#f6f8f4] p-3 dark:border-slate-800 dark:bg-slate-900"
+                  class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600 dark:border-slate-700 dark:bg-brand-900/60 dark:text-slate-300"
+                  :title="permission.label"
                 >
-                  <p class="font-mono text-xs font-black text-slate-950 dark:text-white">{{ permission.key }}</p>
-                  <p class="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">{{ permission.label }}</p>
-                </article>
+                  {{ permission.key }}
+                </span>
               </div>
             </div>
 
-            <EndpointSection
-              v-for="endpoint in endpointSections"
-              :id="endpoint.id"
-              :key="endpoint.id"
-              :section="endpoint"
-              data-doc-section
-            />
+            <div class="space-y-4">
+              <EndpointSection
+                v-for="endpoint in endpointSections"
+                :id="endpoint.id"
+                :key="endpoint.id"
+                :section="endpoint"
+                data-doc-section
+              />
+            </div>
 
             <p
               v-if="endpointSections.length === 0"
-              class="rounded-xl border border-slate-200 bg-white p-6 text-sm font-bold text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400"
+              class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm font-medium text-slate-500 dark:border-slate-700 dark:bg-brand-900/40 dark:text-slate-400"
             >
               No endpoints match the current filters.
             </p>
           </section>
         </div>
       </div>
+
+      <footer class="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-brand-950">
+        <div class="mx-auto flex max-w-[1680px] flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-slate-500 sm:flex-row sm:px-6 lg:px-8 dark:text-slate-400">
+          <p>WESSAAL Developer Documentation — Linked Devices API</p>
+          <p class="font-mono">GET · POST · PUT · DELETE</p>
+        </div>
+      </footer>
     </main>
   </div>
 </template>
