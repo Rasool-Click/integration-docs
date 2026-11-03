@@ -169,7 +169,7 @@ onBeforeUnmount(() => {
           <div class="docs-guide-layout">
             <article class="docs-article">
               <div class="docs-breadcrumb"><span>Documentation</span><ChevronRight :size="14" /><span>Introduction</span></div>
-              <p class="intro-eyebrow"><span class="eyebrow-line" /> WESSAAL DEVELOPERS</p>
+              <p class="intro-eyebrow">WESSAAL DEVELOPERS</p>
               <h1 class="intro-title">Integrate with WESSAAL</h1>
               <p class="intro-lead">Everything you need to connect your application with the WESSAAL messaging API. Explore the API, authenticate requests, and start building with practical examples.</p>
               <div class="intro-rule" />
