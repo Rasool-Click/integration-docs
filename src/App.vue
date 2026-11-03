@@ -2,18 +2,18 @@
 import { useHead } from '@unhead/vue'
 
 useHead({
-  titleTemplate: '%s - WESSAAL API Docs',
-  title: 'Home',
+  titleTemplate: '%s | WESSAAL Developers',
+  title: 'API Documentation',
   meta: [
-    { name: 'description', content: 'WESSAAL API Documentation for integration and development.' },
+    { name: 'description', content: 'WESSAAL developer documentation: authentication, quickstart, API endpoints and code examples.' },
     { property: 'og:title', content: 'WESSAAL API Documentation' },
     { property: 'og:type', content: 'website' },
-    { property: 'og:url', content: 'https://wessaal.com/docs/' },
-    { property: 'og:description', content: 'WESSAAL API Documentation for integration and development.' },
+    { property: 'og:url', content: 'https://docs.wessaal.com/' },
+    { property: 'og:description', content: 'WESSAAL developer documentation: authentication, quickstart, API endpoints and code examples.' },
     { name: 'twitter:card', content: 'summary_large_image' },
   ],
   link: [
-    { rel: 'canonical', href: 'https://wessaal.com/docs/' },
+    { rel: 'canonical', href: 'https://docs.wessaal.com/' },
   ],
 })
 </script>

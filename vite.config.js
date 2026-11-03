@@ -1,25 +1,18 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { visualizer } from 'rollup-plugin-visualizer'
 import generateSitemap from 'vite-ssg-sitemap'
 
 export default defineConfig({
   base: '/',
   plugins: [
     vue(),
-    visualizer({
-      filename: 'stats.html',
-      template: 'treemap', // or sunburst
-      gzipSize: true,
-      brotliSize: true,
-    }),
   ],
   ssgOptions: {
     script: 'async',
     formatting: 'minify',
     includedRoutes(paths, routes) {
       // return all static paths and custom routes defined in memory/requirements
-      return paths.concat(['/linked'])
+      return paths
     },
     onFinished() { generateSitemap({ hostname: 'https://docs.wessaal.com/' }) }
   },
@@ -27,8 +20,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'vue-core': ['vue', 'vue-router', 'pinia'],
-          'shiki': ['shiki'],
+          'vue-core': ['vue', 'vue-router'],
           'unhead': ['@unhead/vue'],
         },
       },

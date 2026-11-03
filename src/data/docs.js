@@ -4,7 +4,6 @@ export const NAV_ITEMS = [
   { id: 'quickstart', label: 'Quickstart', icon: 'list' },
   { id: 'endpoints', label: 'Linked Endpoints', icon: 'terminal' },
   { id: 'responses', label: 'Responses', icon: 'shield' },
-  { id: 'official', label: 'Official API Soon', icon: 'cloud' },
 ]
 
 export const DOC_SECTIONS = [
@@ -15,15 +14,14 @@ export const DOC_SECTIONS = [
     title: 'Integration Documentation',
     eyebrow: 'Developer portal',
     summary:
-      'Wessaal currently exposes the Linked Devices integration track. Official API integration content is marked as coming soon while the public contract is being finalized.',
+      'This reference covers the Linked Devices integration API, including API key authentication, messaging operations and related resources.',
     bullets: [
       'Linked Devices endpoints are served under /integration/v1 and require a valid X-API-Key header.',
       'API keys are permission-scoped, so each endpoint group requires the matching permission.',
       'Successful send requests queue WhatsApp messages and return the local Wessaal message_id for tracking.',
-      'Official API integration content and endpoints are coming soon and are not reachable yet.',
     ],
     cards: [
-      { label: 'Live platform', value: 'Linked Devices', icon: 'smartphone' },
+      { label: 'Documented API', value: 'Linked Devices', icon: 'smartphone' },
       { label: 'Base path', value: '/integration/v1', icon: 'server' },
       { label: 'Authentication', value: 'X-API-Key', icon: 'lock' },
     ],
@@ -78,20 +76,7 @@ export const DOC_SECTIONS = [
       '500 Internal Server Error: unexpected queueing or provider failure.',
     ],
   },
-  {
-    id: 'official',
-    type: 'content',
-    icon: 'cloud',
-    title: 'Official API',
-    eyebrow: 'Coming soon',
-    summary:
-      'Official integration is coming soon. The documentation, endpoint reference, request examples, and production access for this platform are intentionally unavailable right now.',
-    bullets: [
-      'Official endpoint content is hidden from the active endpoint reference until launch.',
-      'The /official documentation route redirects to the available Linked Devices docs.',
-      'API keys, scopes, examples, and production URLs will be published when the Official API is released.',
-    ],
-  },
+
 ]
 
 export const PERMISSIONS = [

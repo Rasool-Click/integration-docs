@@ -1,30 +1,14 @@
 import { ViteSSG } from 'vite-ssg'
-import { createPinia } from 'pinia'
 import App from './App.vue'
 import './style.css'
 import { routes } from './router'
 
-// https://github.com/antfu/vite-ssg
 export const createApp = ViteSSG(
   App,
   { routes, base: import.meta.env.BASE_URL },
-  ({ app, router, routes, isClient, initialState }) => {
-    const pinia = createPinia()
-    app.use(pinia)
-
-    // @unhead/vue and Shiki initialization are automatically handled by their respective plugins or integrations (vite-ssg manages head automatically).
-    // The head instance is automatically created and injected into the app when ViteSSG mounts.
-
-    if (isClient) {
-      pinia.state.value = initialState.pinia || {}
-    } else {
-      initialState.pinia = pinia.state.value
+  ({ app }) => {
+    app.config.errorHandler = (error, instance, info) => {
+      console.error('WESSAAL documentation error:', error, info)
     }
-
-    // Global Vue error handler to prevent hard crashes
-    app.config.errorHandler = (err, instance, info) => {
-      console.error('Global Vue Error:', err, info)
-      // Implementation for external logging (e.g. Sentry) can be placed here.
-    }
-  }
+  },
 )
