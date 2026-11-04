@@ -7,7 +7,10 @@ const BASE_URL = 'https://app.wessaal.com/integration/v1'
 const activeLanguage = ref('curl')
 const copied = ref(false)
 const languages = ['curl', 'JavaScript', 'PHP']
-const fullUrl = computed(() => BASE_URL + props.section.path)
+const prettyQuery = computed(() => props.section.queryExample ? new URLSearchParams(props.section.queryExample).toString() : '')
+const fullUrl = computed(() => {
+  return BASE_URL + props.section.path + (prettyQuery.value ? '?' + prettyQuery.value : '')
+})
 const hasResponse = computed(() => props.section.responseExample !== undefined && props.section.responseExample !== null)
 const responsePreview = computed(() => hasResponse.value ? JSON.stringify(props.section.responseExample, null, 2) : '')
 const prettyBody = computed(() => props.section.bodyExample ? JSON.stringify(props.section.bodyExample, null, 2) : null)
@@ -41,28 +44,44 @@ const snippet = computed(() => {
   const url = fullUrl.value
   const method = props.section.method
   const body = prettyBody.value
+  const headers = props.section.requestHeaders || []
   if (activeLanguage.value === 'curl') {
     const lines = [
-      'curl --request ' + method + ' \\',
-      "  --url '" + url + "' \\",
-      "  --header 'X-API-Key: YOUR_API_KEY'" + (body ? ' \\' : ''),
+      'curl --request ' + method,
+      "  --url '" + url + "'",
+      "  --header 'X-API-Key: YOUR_API_KEY'",
+      ...headers.map(header => "  --header '" + header.name + ': ' + header.value + "'"),
     ]
     if (body) {
-      lines.push("  --header 'Content-Type: application/json' \\")
-      lines.push("  --data '" + body + "'")
+      lines.push("  --header 'Content-Type: application/json'")
+      lines.push("  --data '" + body.replace(/'/g, "'\\''") + "'")
     }
-    return lines.join('\n')
+    return lines.join(' \\\n')
   }
   if (activeLanguage.value === 'JavaScript') {
-    const fields = [
-      "method: '" + method + "',",
-      "headers: {\n    'X-API-Key': process.env.WESSAAL_API_KEY," + (body ? "\n    'Content-Type': 'application/json'," : '') + '\n  },',
+    const lines = [
+      "const response = await fetch('" + url + "', {",
+      "  method: '" + method + "',",
+      '  headers: {',
+      "    'X-API-Key': process.env.WESSAAL_API_KEY,",
+      ...headers.map(header => "    '" + header.name + "': '" + header.value + "',"),
+      ...(body ? ["    'Content-Type': 'application/json',"] : []),
+      '  },',
+      ...(body ? ['  body: JSON.stringify(' + body.replace(/\n/g, '\n  ') + '),'] : []),
+      '});',
+      '',
+      'const data = await response.json();',
     ]
-    if (body) fields.push('body: JSON.stringify(' + body.replace(/\n/g, '\n  ') + '),')
-    return "const response = await fetch('" + url + "', {\n  " + fields.join('\n  ') + '\n});\n\nconst data = await response.json();'
+    return lines.join('\n')
   }
+  const phpHeaders = [
+    "  'X-API-Key' => env('WESSAAL_API_KEY'),",
+    ...headers.map(header => "  '" + header.name + "' => '" + header.value + "',"),
+  ]
   const phpBody = props.section.bodyExample ? ', ' + phpLiteral(props.section.bodyExample, 1) : ''
-  return "use Illuminate\\Support\\Facades\\Http;\n\n$response = Http::withHeaders([\n  'X-API-Key' => env('WESSAAL_API_KEY'),\n])\n  ->" + method.toLowerCase() + "('" + url + "'" + phpBody + ');\n\n$data = $response->json();'
+  return "use Illuminate\\Support\\Facades\\Http;\n\n$response = Http::withHeaders([\n"
+    + phpHeaders.join('\n')
+    + "\n])\n  ->" + method.toLowerCase() + "('" + url + "'" + phpBody + ');\n\n$data = $response->json();'
 })
 
 async function copySnippet() {
@@ -93,6 +112,18 @@ async function copySnippet() {
         <p>Include your API key in the <code>X-API-Key</code> request header. The key needs the following permission:</p>
         <div class="permission-code">{{ section.permission || 'Valid API key' }}</div>
       </div>
+      <div v-if="section.requestHeaders?.length" class="reference-block">
+        <h2>Required request headers</h2>
+        <div class="parameter-list">
+          <div v-for="header in section.requestHeaders" :key="header.name" class="parameter-row">
+            <div class="parameter-heading">
+              <code class="parameter-name">{{ header.name }}</code>
+              <span class="parameter-required">Required</span>
+            </div>
+            <p>{{ header.description }}</p>
+          </div>
+        </div>
+      </div>
       <div v-if="section.parameters?.length" class="reference-block">
         <h2>Parameters</h2>
         <div class="parameter-list">
@@ -107,6 +138,10 @@ async function copySnippet() {
           </div>
         </div>
       </div>
+      <div v-if="section.queryExample" class="reference-block">
+        <h2>Query example</h2>
+        <pre class="inline-code"><code>{{ prettyQuery }}</code></pre>
+      </div>
       <div v-if="section.bodyExample" class="reference-block">
         <h2>Request body</h2>
         <p>Example JSON body for this operation. Replace values with your own data.</p>
@@ -117,6 +152,15 @@ async function copySnippet() {
         <div class="response-status"><span class="response-dot" /> {{ section.responseStatus || 'Status varies by result' }}</div>
         <p v-if="hasResponse">The response shown is an illustration, not a live API result.</p>
         <p v-else>A response example has not been specified in the existing reference for this operation.</p>
+      </div>
+      <div v-if="section.alternateResponse" class="reference-block">
+        <h2>{{ section.alternateResponse.title }}</h2>
+        <div class="response-status"><span class="response-dot" /> {{ section.alternateResponse.status }}</div>
+        <pre class="inline-code"><code>{{ JSON.stringify(section.alternateResponse.value, null, 2) }}</code></pre>
+      </div>
+      <div v-if="section.notes?.length" class="reference-block">
+        <h2>Behavior and limitations</h2>
+        <ul class="doc-bullet-list"><li v-for="note in section.notes" :key="note">{{ note }}</li></ul>
       </div>
       <p class="reference-help"><Info :size="16" /> Examples use placeholder credentials. Never expose API keys in client-side code.</p>
     </article>

@@ -11,7 +11,7 @@ import { DOC_SECTIONS, ENDPOINTS, PERMISSIONS } from '../data/docs'
 const BASE_URL = 'https://app.wessaal.com/integration/v1'
 const docs = DOC_SECTIONS
 const endpoints = ENDPOINTS.filter(endpoint => (endpoint.platform || 'linked') === 'linked')
-const groupNames = ['Health', 'Messages', 'Instances', 'Contacts', 'Templates', 'Workspaces']
+const groupNames = ['Health', 'Messages', 'Groups', 'Instances', 'Contacts', 'Templates', 'Workspaces']
 const endpointGroups = groupNames
   .map(name => ({ name, items: endpoints.filter(item => item.group === name) }))
   .filter(group => group.items.length)
@@ -192,6 +192,11 @@ onBeforeUnmount(() => {
                   <span class="start-copy"><strong>Send a message</strong><small>Review the request body and sample response.</small></span>
                   <ArrowRight :size="17" />
                 </button>
+                <button type="button" @click="navigate('whatsapp-groups')" class="getting-started-link">
+                  <span class="start-icon"><MessageSquare :size="20" /></span>
+                  <span class="start-copy"><strong>Send to WhatsApp groups</strong><small>Sync your groups, choose a group ID and queue a group message safely.</small></span>
+                  <ArrowRight :size="17" />
+                </button>
               </div>
 
               <h2 class="section-title lower-title">API essentials</h2>
@@ -248,6 +253,20 @@ onBeforeUnmount(() => {
                     <ArrowUpRight :size="17" />
                   </button>
                 </div>
+              </template>
+              <template v-else-if="activeDoc.id === 'whatsapp-groups'">
+                <h2 class="section-title">Group messaging workflow</h2>
+                <p class="section-description">Follow these steps in order. Import operations run asynchronously and sending is feature-gated.</p>
+                <div class="quickstep-list">
+                  <button v-for="(step, i) in activeDoc.steps" :key="step.id" class="quickstep" @click="navigate(step.id)">
+                    <span class="quickstep-index">{{ String(i + 1).padStart(2, '0') }}</span>
+                    <span><strong>{{ step.title }}</strong><small>{{ step.text }}</small></span>
+                    <ArrowUpRight :size="17" />
+                  </button>
+                </div>
+                <h2 class="section-title lower-title">Before you send</h2>
+                <ul class="doc-bullet-list"><li v-for="bullet in activeDoc.bullets" :key="bullet">{{ bullet }}</li></ul>
+                <button class="inline-next" @click="navigate('groups-list')">View group endpoints <ArrowRight :size="16" /></button>
               </template>
               <template v-else-if="activeDoc.id === 'responses'">
                 <h2 class="section-title">HTTP status codes</h2>
