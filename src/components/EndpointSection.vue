@@ -1,253 +1,192 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { storeToRefs } from 'pinia'
-import AppIcon from './AppIcon.vue'
-import { usePlatformStore } from '../stores/platform'
+import { Check, Copy, ExternalLink, Info } from '@lucide/vue'
 
-const props = defineProps({
-  section: {
-    type: Object,
-    required: true,
-  },
-})
-
-const platformStore = usePlatformStore()
-const { selectedPlatform, platformConfig } = storeToRefs(platformStore)
-
-const languages = ['curl', 'node', 'php']
+const props = defineProps({ section: { type: Object, required: true } })
+const BASE_URL = 'https://app.wessaal.com/integration/v1'
 const activeLanguage = ref('curl')
 const copied = ref(false)
-
-const methodClasses = {
-  GET: 'bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-950 dark:text-sky-200 dark:ring-sky-800',
-  POST: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800',
-  PUT: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-800',
-  DELETE: 'bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-950 dark:text-rose-200 dark:ring-rose-800',
-}
-
-const endpointPlatform = computed(() => props.section.platform || 'linked')
-const endpointAvailable = computed(() => selectedPlatform.value === endpointPlatform.value)
-const endpointUrl = computed(() => {
-  if (!endpointAvailable.value) return `${props.section.platformLabel || 'Other platform'} endpoint`
-  if (!platformConfig.value.baseUrl) return 'Endpoint contract pending'
-  return `${platformConfig.value.baseUrl}${props.section.path}`
+const languages = ['curl', 'JavaScript', 'PHP']
+const prettyQuery = computed(() => props.section.queryExample ? new URLSearchParams(props.section.queryExample).toString() : '')
+const fullUrl = computed(() => {
+  return BASE_URL + props.section.path + (prettyQuery.value ? '?' + prettyQuery.value : '')
 })
+const hasResponse = computed(() => props.section.responseExample !== undefined && props.section.responseExample !== null)
+const responsePreview = computed(() => hasResponse.value ? JSON.stringify(props.section.responseExample, null, 2) : '')
+const prettyBody = computed(() => props.section.bodyExample ? JSON.stringify(props.section.bodyExample, null, 2) : null)
+const methodClass = computed(() => ({
+  GET: 'method-get',
+  POST: 'method-post',
+  PUT: 'method-put',
+  PATCH: 'method-put',
+  DELETE: 'method-delete',
+}[props.section.method] || 'method-get'))
 
-const requestBody = computed(() => props.section.bodyExample || null)
-const responseBody = computed(() => props.section.responseExample || {
-  success: true,
-  data: {},
-})
-
-const formattedBody = computed(() => (requestBody.value ? JSON.stringify(requestBody.value, null, 2) : null))
-const formattedResponse = computed(() => JSON.stringify(responseBody.value, null, 2))
-
-function toPhpValue(value, depth = 0) {
-  const pad = '    '.repeat(depth)
-  const nextPad = '    '.repeat(depth + 1)
-
+function phpLiteral(value, level = 0) {
+  const pad = '  '.repeat(level)
+  const inner = '  '.repeat(level + 1)
   if (Array.isArray(value)) {
-    if (value.length === 0) return '[]'
-    return `[\n${value.map((item) => `${nextPad}${toPhpValue(item, depth + 1)}`).join(',\n')}\n${pad}]`
+    if (!value.length) return '[]'
+    return '[\n' + value.map(v => inner + phpLiteral(v, level + 1)).join(',\n') + '\n' + pad + ']'
   }
-
   if (value && typeof value === 'object') {
     const entries = Object.entries(value)
-    if (entries.length === 0) return '[]'
-    return `[\n${entries.map(([key, item]) => `${nextPad}'${key}' => ${toPhpValue(item, depth + 1)}`).join(',\n')}\n${pad}]`
+    if (!entries.length) return '[]'
+    return '[\n' + entries.map(([key, v]) => inner + "'" + key + "' => " + phpLiteral(v, level + 1)).join(',\n') + '\n' + pad + ']'
   }
-
-  if (typeof value === 'string') return `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
-  if (typeof value === 'boolean') return value ? 'true' : 'false'
+  if (typeof value === 'string') return "'" + value.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'"
   if (value === null) return 'null'
+  if (typeof value === 'boolean') return value ? 'true' : 'false'
   return String(value)
 }
 
-function generateSnippet(language) {
-  if (!endpointAvailable.value) {
-    return `Select the ${props.section.platformLabel || endpointPlatform.value} platform to use this endpoint.`
-  }
-
-  const url = endpointUrl.value
-  const body = formattedBody.value
-
-  if (language === 'curl') {
-    const lines = [`curl -X ${props.section.method} "${url}" \\`, '  -H "X-API-Key: sk_live_your_key"']
+const snippet = computed(() => {
+  const url = fullUrl.value
+  const method = props.section.method
+  const body = prettyBody.value
+  const headers = props.section.requestHeaders || []
+  if (activeLanguage.value === 'curl') {
+    const lines = [
+      'curl --request ' + method,
+      "  --url '" + url + "'",
+      "  --header 'X-API-Key: YOUR_API_KEY'",
+      ...headers.map(header => "  --header '" + header.name + ': ' + header.value + "'"),
+    ]
     if (body) {
-      lines.push('  -H "Content-Type: application/json" \\')
-      lines.push(`  -d '${body}'`)
+      lines.push("  --header 'Content-Type: application/json'")
+      lines.push("  --data '" + body.replace(/'/g, "'\\''") + "'")
     }
+    return lines.join(' \\\n')
+  }
+  if (activeLanguage.value === 'JavaScript') {
+    const lines = [
+      "const response = await fetch('" + url + "', {",
+      "  method: '" + method + "',",
+      '  headers: {',
+      "    'X-API-Key': process.env.WESSAAL_API_KEY,",
+      ...headers.map(header => "    '" + header.name + "': '" + header.value + "',"),
+      ...(body ? ["    'Content-Type': 'application/json',"] : []),
+      '  },',
+      ...(body ? ['  body: JSON.stringify(' + body.replace(/\n/g, '\n  ') + '),'] : []),
+      '});',
+      '',
+      'const data = await response.json();',
+    ]
     return lines.join('\n')
   }
-
-  if (language === 'node') {
-    const options = [
-      `method: '${props.section.method}',`,
-      `headers: {${body ? "\n    'Content-Type': 'application/json',\n    " : ' '}'X-API-Key': process.env.WESSAAL_API_KEY${body ? ',\n  ' : ' '}},`,
-    ]
-    if (body) options.push(`body: JSON.stringify(${body.replace(/\n/g, '\n  ')}),`)
-
-    return `const response = await fetch('${url}', {
-  ${options.join('\n  ')}
-});
-
-const payload = await response.json();`
-  }
-
-  const phpBody = requestBody.value ? toPhpValue(requestBody.value, 2) : null
-
-  return `$response = Http::withHeaders([
-    'X-API-Key' => env('WESSAAL_API_KEY'),
-])${body ? `->asJson()` : ''}
-    ->${props.section.method.toLowerCase()}('${url}'${phpBody ? `, ${phpBody}` : ''});
-
-$payload = $response->json();`
-}
-
-const activeSnippet = computed(() => generateSnippet(activeLanguage.value))
-
-async function copyText(value) {
-  if (!value) return false
-  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-    await navigator.clipboard.writeText(value)
-    return true
-  }
-
-  const textarea = document.createElement('textarea')
-  textarea.value = value
-  textarea.setAttribute('readonly', '')
-  textarea.style.position = 'fixed'
-  textarea.style.top = '-9999px'
-  document.body.appendChild(textarea)
-  textarea.select()
-  const ok = document.execCommand('copy')
-  textarea.remove()
-  return ok
-}
+  const phpHeaders = [
+    "  'X-API-Key' => env('WESSAAL_API_KEY'),",
+    ...headers.map(header => "  '" + header.name + "' => '" + header.value + "',"),
+  ]
+  const phpBody = props.section.bodyExample ? ', ' + phpLiteral(props.section.bodyExample, 1) : ''
+  return "use Illuminate\\Support\\Facades\\Http;\n\n$response = Http::withHeaders([\n"
+    + phpHeaders.join('\n')
+    + "\n])\n  ->" + method.toLowerCase() + "('" + url + "'" + phpBody + ');\n\n$data = $response->json();'
+})
 
 async function copySnippet() {
-  if (await copyText(activeSnippet.value)) {
+  try {
+    await navigator.clipboard.writeText(snippet.value)
     copied.value = true
-    window.setTimeout(() => {
-      copied.value = false
-    }, 1200)
+    window.setTimeout(() => { copied.value = false }, 1500)
+  } catch {
+    copied.value = false
   }
 }
 </script>
 
 <template>
-  <section :id="section.id" class="scroll-mt-28 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950/80">
-    <div class="grid min-w-0 gap-0 xl:grid-cols-[minmax(0,1fr)_minmax(360px,520px)]">
-      <div class="p-5 sm:p-6">
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div class="min-w-0">
-            <div class="flex flex-wrap items-center gap-2">
-              <span
-                class="rounded-md px-2.5 py-1 font-mono text-xs font-black ring-1"
-                :class="methodClasses[section.method] || 'bg-slate-100 text-slate-700 ring-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-700'"
-              >
-                {{ section.method }}
-              </span>
-              <span class="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-black text-slate-600 dark:border-slate-700 dark:text-slate-300">
-                {{ section.group }}
-              </span>
-              <span class="rounded-md border border-slate-200 px-2.5 py-1 font-mono text-xs font-bold text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                {{ section.permission }}
-              </span>
-            </div>
-            <h3 class="mt-4 break-words text-lg font-black tracking-tight text-slate-950 dark:text-white sm:text-xl">{{ section.title }}</h3>
-          </div>
-          <span class="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600 dark:bg-slate-900 dark:text-slate-300">
-            {{ section.responseStatus }}
-          </span>
-        </div>
-
-        <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-300">{{ section.description }}</p>
-
-        <div
-          v-if="!endpointAvailable"
-          class="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100"
-        >
-          <div class="flex items-start gap-3">
-            <AppIcon name="clock" class="mt-0.5 h-4 w-4 shrink-0" />
-            <p>
-              This endpoint belongs to the {{ section.platformLabel || 'other' }} platform. Switch platforms to view the matching production URL and copy-ready snippets.
-            </p>
-          </div>
-        </div>
-
-        <div class="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/70">
-          <p class="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            <AppIcon name="server" class="h-4 w-4" />
-            Endpoint
-          </p>
-          <p class="mt-2 break-all font-mono text-sm font-bold text-slate-950 dark:text-white">{{ endpointUrl }}</p>
-        </div>
-
-        <div v-if="section.parameters?.length" class="mt-5 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-          <table class="min-w-[720px] text-left text-sm">
-            <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900 dark:text-slate-400">
-              <tr>
-                <th class="px-4 py-3 font-black">Parameter</th>
-                <th class="px-4 py-3 font-black">Type</th>
-                <th class="px-4 py-3 font-black">Required</th>
-                <th class="px-4 py-3 font-black">Description</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200 bg-white dark:divide-slate-800 dark:bg-slate-950">
-              <tr v-for="param in section.parameters" :key="param.name">
-                <td class="px-4 py-3 font-mono text-xs font-bold text-slate-950 dark:text-white">{{ param.name }}</td>
-                <td class="px-4 py-3 break-words text-slate-600 dark:text-slate-300">{{ param.type }}</td>
-                <td class="px-4 py-3">
-                  <span
-                    class="rounded-md px-2 py-1 text-xs font-black"
-                    :class="
-                      param.required === true || typeof param.required === 'string'
-                        ? 'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-200'
-                        : 'bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300'
-                    "
-                  >
-                    {{ param.required === true ? 'Yes' : param.required || 'No' }}
-                  </span>
-                </td>
-                <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ param.description }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+  <div class="reference-layout">
+    <article class="reference-main">
+      <nav class="docs-breadcrumb" aria-label="Breadcrumb">
+        <span>API Reference</span><span class="breadcrumb-slash">/</span><span>{{ section.group }}</span>
+      </nav>
+      <h1 class="reference-title">{{ section.title }}</h1>
+      <p class="reference-intro">{{ section.description }}</p>
+      <div class="endpoint-path">
+        <span class="http-method" :class="methodClass">{{ section.method }}</span>
+        <code>{{ section.path }}</code>
       </div>
-
-      <div class="min-w-0 border-t border-slate-200 bg-slate-950 xl:border-l xl:border-t-0 dark:border-slate-800">
-        <div class="xl:sticky xl:top-24">
-          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-3 py-2">
-            <div class="flex max-w-full items-center gap-1 overflow-x-auto">
-              <button
-                v-for="lang in languages"
-                :key="lang"
-                type="button"
-                class="rounded-md px-2.5 py-1 text-xs font-black capitalize transition"
-                :class="activeLanguage === lang ? 'bg-white text-slate-950' : 'text-slate-400 hover:bg-white/10 hover:text-white'"
-                @click="activeLanguage = lang"
-              >
-                {{ lang }}
-              </button>
+      <div class="reference-block">
+        <h2>Authentication</h2>
+        <p>Include your API key in the <code>X-API-Key</code> request header. The key needs the following permission:</p>
+        <div class="permission-code">{{ section.permission || 'Valid API key' }}</div>
+      </div>
+      <div v-if="section.requestHeaders?.length" class="reference-block">
+        <h2>Required request headers</h2>
+        <div class="parameter-list">
+          <div v-for="header in section.requestHeaders" :key="header.name" class="parameter-row">
+            <div class="parameter-heading">
+              <code class="parameter-name">{{ header.name }}</code>
+              <span class="parameter-required">Required</span>
             </div>
-            <button
-              type="button"
-              class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1 text-xs font-black text-white hover:bg-white/10"
-              @click="copySnippet"
-            >
-              <AppIcon :name="copied ? 'check' : 'copy'" class="h-3.5 w-3.5" />
-              {{ copied ? 'Copied' : 'Copy' }}
-            </button>
-          </div>
-          <pre class="max-h-[320px] max-w-full overflow-auto p-4 text-[11px] leading-5 text-slate-100 sm:text-[12px] xl:max-h-[420px]"><code class="font-mono">{{ activeSnippet }}</code></pre>
-          <div class="border-t border-white/10 p-4">
-            <p class="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Example response</p>
-            <pre class="max-h-[220px] max-w-full overflow-auto rounded-lg bg-black/30 p-3 text-[11px] leading-5 text-slate-200 sm:text-[12px] xl:max-h-[260px]"><code class="font-mono">{{ formattedResponse }}</code></pre>
+            <p>{{ header.description }}</p>
           </div>
         </div>
       </div>
-    </div>
-  </section>
+      <div v-if="section.parameters?.length" class="reference-block">
+        <h2>Parameters</h2>
+        <div class="parameter-list">
+          <div v-for="param in section.parameters" :key="param.name" class="parameter-row">
+            <div class="parameter-heading">
+              <code class="parameter-name">{{ param.name }}</code>
+              <code class="parameter-type">{{ param.type }}</code>
+              <span v-if="param.required" class="parameter-required">{{ param.required === true ? 'Required' : 'Required ' + param.required }}</span>
+              <span v-else class="parameter-optional">Optional</span>
+            </div>
+            <p>{{ param.description }}</p>
+          </div>
+        </div>
+      </div>
+      <div v-if="section.queryExample" class="reference-block">
+        <h2>Query example</h2>
+        <pre class="inline-code"><code>{{ prettyQuery }}</code></pre>
+      </div>
+      <div v-if="section.bodyExample" class="reference-block">
+        <h2>Request body</h2>
+        <p>Example JSON body for this operation. Replace values with your own data.</p>
+        <pre class="inline-code"><code>{{ prettyBody }}</code></pre>
+      </div>
+      <div class="reference-block">
+        <h2>Response</h2>
+        <div class="response-status"><span class="response-dot" /> {{ section.responseStatus || 'Status varies by result' }}</div>
+        <p v-if="hasResponse">The response shown is an illustration, not a live API result.</p>
+        <p v-else>A response example has not been specified in the existing reference for this operation.</p>
+      </div>
+      <div v-if="section.alternateResponse" class="reference-block">
+        <h2>{{ section.alternateResponse.title }}</h2>
+        <div class="response-status"><span class="response-dot" /> {{ section.alternateResponse.status }}</div>
+        <pre class="inline-code"><code>{{ JSON.stringify(section.alternateResponse.value, null, 2) }}</code></pre>
+      </div>
+      <div v-if="section.notes?.length" class="reference-block">
+        <h2>Behavior and limitations</h2>
+        <ul class="doc-bullet-list"><li v-for="note in section.notes" :key="note">{{ note }}</li></ul>
+      </div>
+      <p class="reference-help"><Info :size="16" /> Examples use placeholder credentials. Never expose API keys in client-side code.</p>
+    </article>
+
+    <aside class="reference-code-panel" aria-label="Code examples">
+      <div class="reference-code-sticky">
+        <div class="code-panel-heading"><span>EXAMPLE REQUEST</span><span class="code-panel-file">HTTP</span></div>
+        <div class="code-language-row">
+          <div role="tablist" aria-label="Code language" class="code-language-tabs">
+            <button v-for="language in languages" :key="language" type="button" role="tab"
+              :aria-selected="activeLanguage === language"
+              :class="['code-language-tab', { 'is-selected': activeLanguage === language }]"
+              @click="activeLanguage = language">{{ language }}</button>
+          </div>
+          <button class="code-copy" type="button" @click="copySnippet" :aria-label="copied ? 'Copied snippet' : 'Copy code snippet'">
+            <Check v-if="copied" :size="14" /><Copy v-else :size="14" /> {{ copied ? 'Copied' : 'Copy' }}
+          </button>
+        </div>
+        <pre class="request-snippet"><code>{{ snippet }}</code></pre>
+        <div class="code-response-section">
+          <div class="code-panel-heading"><span>EXAMPLE RESPONSE</span><span class="code-panel-file">{{ section.responseStatus || 'JSON' }}</span></div>
+          <pre v-if="hasResponse" class="response-snippet"><code>{{ responsePreview }}</code></pre>
+          <p v-else class="response-missing">Response example not documented.</p>
+        </div>
+        <p class="code-note">Manage API keys from <a href="https://dashboard.wessaal.com/" target="_blank" rel="noopener noreferrer">WESSAAL Dashboard <ExternalLink :size="12" /></a>.</p>
+      </div>
+    </aside>
+  </div>
 </template>

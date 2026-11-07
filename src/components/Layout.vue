@@ -1,508 +1,321 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { storeToRefs } from 'pinia'
-import PlatformSwitcher from './PlatformSwitcher.vue'
-import SidebarNav from './SidebarNav.vue'
+import {
+  ArrowRight, ArrowUpRight, BookOpen, Check, ChevronDown, ChevronRight,
+  Code2, Command, Copy, ExternalLink, FileText, KeyRound, Menu, MessageSquare,
+  Search, Server, ShieldCheck, Terminal, X, Zap,
+} from '@lucide/vue'
 import EndpointSection from './EndpointSection.vue'
-import AppIcon from './AppIcon.vue'
-import { DOC_SECTIONS, ENDPOINT_GROUPS, ENDPOINTS, NAV_ITEMS, PERMISSIONS } from '../data/docs'
-import { usePlatformStore } from '../stores/platform'
-import logoUrl from '../assets/wessaal-logo.svg'
+import { DOC_SECTIONS, ENDPOINTS, PERMISSIONS } from '../data/docs'
 
-const BRAND_ASSETS_ENDPOINT = 'https://app.wessaal.com/api/logo'
+const BASE_URL = 'https://app.wessaal.com/integration/v1'
+const docs = DOC_SECTIONS
+const endpoints = ENDPOINTS.filter(endpoint => (endpoint.platform || 'linked') === 'linked')
+const groupNames = ['Health', 'Messages', 'Groups', 'Instances', 'Contacts', 'Templates', 'Workspaces']
+const endpointGroups = groupNames
+  .map(name => ({ name, items: endpoints.filter(item => item.group === name) }))
+  .filter(group => group.items.length)
 
-const platformStore = usePlatformStore()
-const { selectedPlatform, platformConfig } = storeToRefs(platformStore)
-
-const isDark = ref(false)
-const activeSection = ref('overview')
-const observer = ref(null)
-const search = ref('')
-const selectedGroup = ref('All')
-const developerSearch = ref('')
-const isDeveloperSearchFocused = ref(false)
-const developerSearchWrapper = ref(null)
-const brandAssets = ref({
-  logo: logoUrl,
-  logo_full: logoUrl,
-  logo_light: '',
-  logo_dark: '',
-  favicon: '',
+const activeId = ref('overview')
+const sidebarOpen = ref(false)
+const searchOpen = ref(false)
+const searchQuery = ref('')
+const searchInput = ref(null)
+const copied = ref(false)
+const collapsedGroups = ref({})
+const searchItems = [
+  ...docs.map(item => ({ id: item.id, title: item.title, desc: item.summary, group: 'Guides' })),
+  ...endpoints.map(item => ({ id: item.id, title: item.title, desc: item.method + ' ' + item.path, group: item.group, method: item.method })),
+]
+const results = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return searchItems.slice(0, 8)
+  return searchItems.filter(item => (
+    (item.title + ' ' + item.desc + ' ' + item.group).toLowerCase().includes(q)
+  )).slice(0, 12)
 })
+const activeDoc = computed(() => docs.find(item => item.id === activeId.value))
+const activeEndpoint = computed(() => endpoints.find(item => item.id === activeId.value))
+const isHome = computed(() => activeId.value === 'overview')
+const index = computed(() => searchItems.findIndex(item => item.id === activeId.value))
+const prevPage = computed(() => index.value > 0 ? searchItems[index.value - 1] : null)
+const nextPage = computed(() => index.value < searchItems.length - 1 ? searchItems[index.value + 1] : null)
 
-const endpointSections = computed(() => {
-  const query = search.value.trim().toLowerCase()
-
-  return ENDPOINTS.filter((endpoint) => {
-    const platformMatches = (endpoint.platform || 'linked') === selectedPlatform.value
-    const groupMatches = selectedGroup.value === 'All' || endpoint.group === selectedGroup.value
-    const searchable = `${endpoint.title} ${endpoint.description} ${endpoint.method} ${endpoint.path} ${endpoint.permission} ${endpoint.group}`.toLowerCase()
-    return platformMatches && groupMatches && (!query || searchable.includes(query))
-  })
-})
-
-const quickHighlights = computed(() => [
-  {
-    id: 'base',
-    label: 'Base URL',
-    value: platformConfig.value.baseUrl || 'Pending backend contract',
-    icon: 'server',
-    mono: Boolean(platformConfig.value.baseUrl),
-  },
-  {
-    id: 'auth',
-    label: 'Authentication',
-    value: platformConfig.value.authHeader,
-    icon: 'lock',
-    mono: selectedPlatform.value === 'linked',
-  },
-  {
-    id: 'status',
-    label: 'Platform Status',
-    value: platformConfig.value.status,
-    icon: selectedPlatform.value === 'linked' ? 'activity' : 'clock',
-    mono: false,
-  },
-])
-
-const developerResults = computed(() => {
-  const query = developerSearch.value.trim().toLowerCase()
-  if (!query) return []
-
-  const sectionMatches = DOC_SECTIONS.filter((section) => {
-    const sectionText = [
-      section.title,
-      section.eyebrow,
-      section.summary,
-      ...(section.bullets || []),
-      ...((section.cards || []).map((card) => `${card.label} ${card.value}`)),
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase()
-
-    return sectionText.includes(query)
-  }).map((section) => ({
-    id: section.id,
-    href: `#${section.id}`,
-    icon: section.icon || 'book',
-    title: section.title,
-    subtitle: section.summary,
-    kind: 'Guide',
-    targetSection: section.id,
-  }))
-
-  const endpointMatches = ENDPOINTS.filter((endpoint) => {
-    if ((endpoint.platform || 'linked') !== selectedPlatform.value) return false
-
-    const endpointText = `${endpoint.title} ${endpoint.description} ${endpoint.method} ${endpoint.path} ${endpoint.permission} ${endpoint.group}`.toLowerCase()
-    return endpointText.includes(query)
-  }).map((endpoint) => ({
-    id: endpoint.id,
-    href: `#${endpoint.id}`,
-    icon: 'terminal',
-    title: endpoint.title,
-    subtitle: `${endpoint.method} ${endpoint.path}`,
-    kind: 'Endpoint',
-    targetSection: 'endpoints',
-  }))
-
-  return [...sectionMatches, ...endpointMatches].slice(0, 8)
-})
-
-const showDeveloperResults = computed(() => isDeveloperSearchFocused.value && developerSearch.value.trim().length > 0)
-
-const headerLogoSrc = computed(() => {
-  if (isDark.value) return brandAssets.value.logo_dark || brandAssets.value.logo_full || brandAssets.value.logo || logoUrl
-  return brandAssets.value.logo_light || brandAssets.value.logo_full || brandAssets.value.logo || logoUrl
-})
-
-function setFavicon(url) {
-  if (!url) return
-  let favicon = document.querySelector('link[rel="icon"]')
-
-  if (!favicon) {
-    favicon = document.createElement('link')
-    favicon.setAttribute('rel', 'icon')
-    document.head.appendChild(favicon)
+function navigate(id) {
+  if (!searchItems.some(item => item.id === id)) id = 'overview'
+  activeId.value = id
+  sidebarOpen.value = false
+  searchOpen.value = false
+  searchQuery.value = ''
+  if (typeof window !== 'undefined') {
+    window.history.replaceState(null, '', '#' + id)
+    window.scrollTo({ top: 0, behavior: 'instant' })
   }
-
-  favicon.setAttribute('href', url)
 }
-
-async function loadBrandAssets() {
+function syncHash() {
+  const id = decodeURIComponent(window.location.hash.slice(1))
+  if (searchItems.some(item => item.id === id)) activeId.value = id
+}
+async function showSearch() {
+  searchQuery.value = ''
+  searchOpen.value = true
+  sidebarOpen.value = false
+  await nextTick()
+  searchInput.value?.focus()
+}
+function closeSearch() { searchOpen.value = false; searchQuery.value = '' }
+function handleKeyboard(event) {
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+    event.preventDefault()
+    showSearch()
+  }
+  if (event.key === 'Escape') {
+    closeSearch()
+    sidebarOpen.value = false
+  }
+}
+function toggleGroup(name) {
+  collapsedGroups.value = { ...collapsedGroups.value, [name]: !collapsedGroups.value[name] }
+}
+async function copyBaseUrl() {
   try {
-    const response = await fetch(BRAND_ASSETS_ENDPOINT)
-    if (!response.ok) return
-
-    const payload = await response.json()
-    if (!payload?.success || !payload?.data) return
-
-    brandAssets.value = {
-      logo: payload.data.logo || logoUrl,
-      logo_full: payload.data.logo_full || payload.data.logo || logoUrl,
-      logo_light: payload.data.logo_light || '',
-      logo_dark: payload.data.logo_dark || '',
-      favicon: payload.data.favicon || '',
-    }
-
-    setFavicon(brandAssets.value.favicon)
-  } catch {
-    // Keep local fallback assets if network request fails.
-  }
+    await navigator.clipboard.writeText(BASE_URL)
+    copied.value = true
+    window.setTimeout(() => { copied.value = false }, 1500)
+  } catch { copied.value = false }
 }
-
-function setTheme(nextDark) {
-  isDark.value = nextDark
-  document.documentElement.classList.toggle('dark', nextDark)
-}
-
-function initTheme() {
-  setTheme(false)
-}
-
-function handleOutsideClick(event) {
-  if (!developerSearchWrapper.value?.contains(event.target)) {
-    isDeveloperSearchFocused.value = false
-  }
-}
-
-async function goToDeveloperResult(result) {
-  if (result.kind === 'Endpoint') {
-    selectedGroup.value = 'All'
-    search.value = ''
-    await nextTick()
-  }
-
-  isDeveloperSearchFocused.value = false
-  developerSearch.value = ''
-  activeSection.value = result.targetSection
-
-  window.requestAnimationFrame(() => {
-    const target = document.getElementById(result.id)
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      window.history.replaceState(null, '', result.href)
-    }
-  })
-}
-
-function goToFirstDeveloperResult() {
-  if (!developerResults.value.length) return
-  goToDeveloperResult(developerResults.value[0])
-}
-
-function setupScrollSpy() {
-  const sections = document.querySelectorAll('[data-doc-section]')
-
-  observer.value = new IntersectionObserver(
-    (entries) => {
-      const visible = entries
-        .filter((entry) => entry.isIntersecting)
-        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)
-
-      if (visible.length > 0) activeSection.value = visible[0].target.id
-    },
-    { threshold: [0.2, 0.45, 0.7], rootMargin: '-18% 0px -58% 0px' },
-  )
-
-  sections.forEach((section) => observer.value.observe(section))
-}
-
 onMounted(() => {
-  initTheme()
-  document.addEventListener('click', handleOutsideClick)
-  loadBrandAssets()
-  setupScrollSpy()
+  syncHash()
+  window.addEventListener('hashchange', syncHash)
+  window.addEventListener('keydown', handleKeyboard)
 })
-
 onBeforeUnmount(() => {
-  document.removeEventListener('click', handleOutsideClick)
-  observer.value?.disconnect()
+  window.removeEventListener('hashchange', syncHash)
+  window.removeEventListener('keydown', handleKeyboard)
 })
-
-watch([selectedPlatform, endpointSections], () => {
-  window.requestAnimationFrame(() => {
-    observer.value?.disconnect()
-    setupScrollSpy()
-  })
+watch([sidebarOpen, searchOpen], ([isNav, isSearch]) => {
+  if (typeof document !== 'undefined') document.body.style.overflow = isNav || isSearch ? 'hidden' : ''
+})
+onBeforeUnmount(() => {
+  if (typeof document !== 'undefined') document.body.style.overflow = ''
 })
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#f6f8f4] text-slate-800 dark:bg-slate-950 dark:text-slate-100">
-    <header class="sticky top-0 z-40 border-b border-slate-200/80 bg-[#f6f8f4]/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90" role="banner">
-      <div class="mx-auto max-w-[1680px] px-4 py-3 sm:px-6 lg:px-8">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <a href="#overview" class="flex min-w-0 items-center gap-3" aria-label="Wessaal Developer Documentation">
-            <img :src="headerLogoSrc" alt="Wessaal" class="h-10 w-auto shrink-0" />
-            <span class="hidden h-7 w-px bg-slate-300 dark:bg-slate-700 sm:block" />
-            <span class="hidden min-w-0 sm:block">
-              <span class="block text-xs font-black uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">Developer Docs</span>
-              <span class="block text-sm font-black text-slate-950 dark:text-white">Integration APIs</span>
-            </span>
-          </a>
+  <div class="developer-shell">
+    <a class="skip-link" href="#docs-content">Skip to content</a>
 
-          <div ref="developerSearchWrapper" class="relative order-3 w-full md:order-2 md:max-w-xl md:flex-1">
-            <label class="relative block" for="dev-search">
-              <span class="sr-only">Search docs for developers</span>
-              <AppIcon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-              <input
-                id="dev-search"
-                v-model="developerSearch"
-                type="search"
-                placeholder="Search docs for developers"
-                class="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-9 text-sm font-bold text-slate-700 outline-none ring-0 focus-ring dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                @focus="isDeveloperSearchFocused = true"
-                @keydown.enter.prevent="goToFirstDeveloperResult"
-                @keydown.esc="isDeveloperSearchFocused = false"
-              />
-              <button
-                v-if="developerSearch"
-                type="button"
-                aria-label="Clear search"
-                class="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus-ring dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-                @click="developerSearch = ''"
-              >
-                <AppIcon name="x" class="h-4 w-4" aria-hidden="true" />
-              </button>
-            </label>
+    <header class="developer-topbar">
+      <div class="topbar-brand">
+        <button class="topbar-menu icon-button" type="button" aria-label="Open navigation" @click="sidebarOpen = true"><Menu :size="19" /></button>
+        <a href="#overview" class="brand-home" aria-label="WESSAAL Developers home" @click.prevent="navigate('overview')">
+          <img src="/brand/WESSAAL_Primary_On_Light.svg" alt="WESSAAL" />
+        </a>
+        <span class="brand-separator" />
+        <span class="brand-title">Developers</span>
+        <span class="brand-product">API Docs</span>
+      </div>
 
-            <div
-              v-if="showDeveloperResults"
-              class="absolute left-0 right-0 z-50 mt-2 max-h-[340px] w-full overflow-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-950"
-            >
-              <button
-                v-for="result in developerResults"
-                :key="result.id"
-                type="button"
-                class="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-slate-100 dark:hover:bg-slate-900"
-                @click="goToDeveloperResult(result)"
-              >
-                <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                  <AppIcon :name="result.icon" class="h-4 w-4" />
-                </span>
-                <span class="min-w-0">
-                  <span class="block truncate text-sm font-black text-slate-900 dark:text-slate-100">{{ result.title }}</span>
-                  <span class="block truncate text-xs text-slate-500 dark:text-slate-400">{{ result.subtitle }}</span>
-                </span>
-                <span class="ml-auto rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-600 dark:bg-slate-900 dark:text-slate-300">
-                  {{ result.kind }}
-                </span>
-              </button>
-
-              <p v-if="developerResults.length === 0" class="px-3 py-2 text-sm font-bold text-slate-500 dark:text-slate-400">
-                No results found. Try endpoint name, path, or section title.
-              </p>
-            </div>
-          </div>
-
-          <div class="order-2 flex shrink-0 items-center gap-2 md:order-3">
-            <PlatformSwitcher />
-            <a
-              href="#endpoints"
-              class="hidden items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-800 shadow-sm hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 sm:inline-flex"
-            >
-              <AppIcon name="search" class="h-4 w-4" />
-              <span class="hidden md:inline">Browse endpoints</span>
-              <span class="md:hidden">Endpoints</span>
-            </a>
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-sm font-black text-white shadow-sm hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
-              @click="setTheme(!isDark)"
-            >
-              <AppIcon :name="isDark ? 'sun' : 'moon'" class="h-4 w-4" />
-              <span class="hidden sm:inline">{{ isDark ? 'Light' : 'Dark' }}</span>
-            </button>
-          </div>
-        </div>
+      <div class="topbar-actions">
+        <button type="button" class="header-search" @click="showSearch" aria-label="Search documentation">
+          <Search :size="17" /><span>Search documentation</span>
+          <kbd>⌘ K</kbd>
+        </button>
+        <button type="button" class="search-mobile icon-button" @click="showSearch" aria-label="Search documentation"><Search :size="19" /></button>
+        <span class="topbar-action-divider" />
+        <a class="topbar-link" href="https://wessaal.com/en/" target="_blank" rel="noopener noreferrer">Website <ArrowUpRight :size="14" /></a>
+        <a class="topbar-dashboard" href="https://dashboard.wessaal.com/" target="_blank" rel="noopener noreferrer">Dashboard <ArrowUpRight :size="14" /></a>
       </div>
     </header>
 
-    <main id="main-content">
-      <section class="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950" aria-labelledby="intro-heading">
-        <div class="mx-auto max-w-[1680px] px-4 py-7 sm:px-6 lg:px-8 lg:py-10">
-          <div class="min-w-0">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800">
-                Linked Devices live
-              </span>
-              <span class="rounded-md bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-800">
-                Official coming soon
-              </span>
-            </div>
-            <h1 id="intro-heading" class="mt-5 max-w-5xl text-3xl font-black leading-[1.08] tracking-tight text-slate-950 dark:text-white sm:text-4xl md:text-5xl xl:text-6xl">
-              Production documentation for Wessaal integration developers.
-            </h1>
-            <p class="mt-5 max-w-3xl text-base leading-8 text-slate-600 dark:text-slate-300">
-              Linked Devices documentation is live for developers. Official API integration is marked coming soon and is not reachable until its public contract is ready.
-            </p>
-
-            <div class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              <article
-                v-for="highlight in quickHighlights"
-                :key="highlight.id"
-                class="rounded-xl border border-slate-200 bg-[#f6f8f4] p-4 dark:border-slate-800 dark:bg-slate-900/70"
-              >
-                <p class="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  <AppIcon :name="highlight.icon" class="h-4 w-4" />
-                  {{ highlight.label }}
-                </p>
-                <p
-                  class="mt-2 text-sm font-black text-slate-950 dark:text-white"
-                  :class="highlight.mono ? 'break-all font-mono text-[12px]' : ''"
-                >
-                  {{ highlight.value }}
-                </p>
-              </article>
-            </div>
+    <div class="developer-layout">
+      <div v-if="sidebarOpen" class="sidebar-backdrop" @click="sidebarOpen = false" />
+      <aside :class="['developer-sidebar', { 'sidebar-open': sidebarOpen }]" aria-label="Documentation navigation">
+        <div class="sidebar-mobile-top"><span>Documentation</span><button class="icon-button" type="button" aria-label="Close navigation" @click="sidebarOpen = false"><X :size="20" /></button></div>
+        <div class="sidebar-version"><span class="version-dot" /> WESSAAL API <span class="version-text">v1</span></div>
+        <nav class="sidebar-scroll" aria-label="Documentation pages">
+          <div class="sidebar-group">
+            <p class="sidebar-group-label">GET STARTED</p>
+            <button :class="['sidebar-item', { selected: activeId === 'overview' }]" @click="navigate('overview')"><BookOpen :size="17" /><span>Introduction</span></button>
+            <button :class="['sidebar-item', { selected: activeId === 'authentication' }]" @click="navigate('authentication')"><KeyRound :size="17" /><span>Authentication</span></button>
+            <button :class="['sidebar-item', { selected: activeId === 'quickstart' }]" @click="navigate('quickstart')"><Zap :size="17" /><span>Quickstart</span></button>
+            <button :class="['sidebar-item', { selected: activeId === 'responses' }]" @click="navigate('responses')"><ShieldCheck :size="17" /><span>Responses & errors</span></button>
           </div>
-        </div>
-      </section>
-
-      <div class="mx-auto grid max-w-[1680px] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:px-8 xl:grid-cols-[300px_minmax(0,1fr)]">
-        <aside class="hidden lg:block" aria-label="Sidebar Navigation">
-          <SidebarNav :items="NAV_ITEMS" :active-section="activeSection" />
-        </aside>
-
-        <nav class="lg:hidden" aria-label="Documentation sections">
-          <div class="-mx-4 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6">
-            <div class="flex min-w-max gap-2">
-              <a
-                v-for="item in NAV_ITEMS"
-                :key="item.id"
-                :href="`#${item.id}`"
-                class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
-                :class="activeSection === item.id ? 'border-slate-950 bg-slate-950 text-white dark:border-white dark:bg-white dark:text-slate-950' : ''"
-              >
-                <AppIcon :name="item.icon || 'book'" class="h-4 w-4 shrink-0" />
-                {{ item.label }}
-              </a>
+          <div class="sidebar-group reference-group">
+            <div class="sidebar-reference-heading"><p class="sidebar-group-label">API REFERENCE</p><span>{{ endpoints.length }}</span></div>
+            <div v-for="group in endpointGroups" :key="group.name" class="endpoint-nav-group">
+              <button type="button" class="sidebar-group-toggle" :aria-expanded="!collapsedGroups[group.name]" @click="toggleGroup(group.name)">
+                <span>{{ group.name }}</span>
+                <ChevronDown :size="14" :class="{ 'chevron-collapsed': collapsedGroups[group.name] }" />
+              </button>
+              <div v-if="!collapsedGroups[group.name]" class="endpoint-nav-items">
+                <button v-for="item in group.items" :key="item.id" :class="['endpoint-nav-item', { selected: activeId === item.id }]" @click="navigate(item.id)" :title="item.method + ' ' + item.path">
+                  <span :class="['nav-method', 'nav-' + item.method.toLowerCase()]">{{ item.method }}</span><span class="endpoint-nav-name">{{ item.title }}</span>
+                </button>
+              </div>
             </div>
           </div>
         </nav>
-
-        <div class="min-w-0 space-y-6">
-          <section
-            v-for="section in DOC_SECTIONS"
-            :id="section.id"
-            :key="section.id"
-            data-doc-section
-            class="scroll-mt-28 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/80 sm:p-6"
-          >
-            <div class="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p class="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">
-                  <AppIcon :name="section.icon || 'book'" class="h-4 w-4" />
-                  {{ section.eyebrow || 'Documentation' }}
-                </p>
-                <h2 class="mt-2 text-xl font-black tracking-tight text-slate-950 dark:text-white sm:text-2xl">{{ section.title }}</h2>
-              </div>
-            </div>
-            <p class="mt-3 max-w-4xl text-sm leading-7 text-slate-600 dark:text-slate-300">{{ section.summary }}</p>
-
-            <div v-if="section.cards" class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              <article
-                v-for="card in section.cards"
-                :key="card.label"
-                class="rounded-lg border border-slate-200 bg-[#f6f8f4] p-4 dark:border-slate-800 dark:bg-slate-900"
-              >
-                <p class="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  <AppIcon :name="card.icon" class="h-4 w-4" />
-                  {{ card.label }}
-                </p>
-                <p class="mt-2 break-words font-mono text-sm font-black text-slate-950 dark:text-white">{{ card.value }}</p>
-              </article>
-            </div>
-
-            <pre v-if="section.code" class="mt-5 max-w-full overflow-auto rounded-lg bg-slate-950 p-4 text-[12px] leading-6 text-slate-100 sm:text-[13px]"><code class="font-mono">{{ section.code }}</code></pre>
-
-            <ol v-if="section.steps" class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              <li
-                v-for="(step, index) in section.steps"
-                :key="step.title"
-                class="rounded-lg border border-slate-200 bg-[#f6f8f4] p-4 dark:border-slate-800 dark:bg-slate-900"
-              >
-                <span class="grid h-7 w-7 place-items-center rounded-md bg-slate-950 text-xs font-black text-white dark:bg-white dark:text-slate-950">{{ index + 1 }}</span>
-                <h3 class="mt-3 text-sm font-black text-slate-950 dark:text-white">{{ step.title }}</h3>
-                <p class="mt-2 text-xs leading-5 text-slate-600 dark:text-slate-300">{{ step.text }}</p>
-              </li>
-            </ol>
-
-            <ul v-if="section.bullets" class="mt-5 grid gap-2 text-sm text-slate-600 dark:text-slate-300 sm:grid-cols-2">
-              <li v-for="item in section.bullets" :key="item" class="flex items-start gap-2 rounded-lg bg-slate-50 p-3 dark:bg-slate-900/80">
-                <AppIcon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
-                <span>{{ item }}</span>
-              </li>
-            </ul>
-          </section>
-
-          <section id="endpoints" data-doc-section class="scroll-mt-28 space-y-4">
-            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/80 sm:p-6">
-              <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-                <div>
-                  <p class="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">
-                    <AppIcon name="terminal" class="h-4 w-4" />
-                    Endpoint reference
-                  </p>
-                  <h2 class="mt-2 text-xl font-black tracking-tight text-slate-950 dark:text-white sm:text-2xl">{{ platformConfig.shortLabel }} endpoints</h2>
-                  <p class="mt-2 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-300">
-                    These are the live Linked Devices routes. Permission names match the API key middleware scopes.
-                  </p>
-                </div>
-                <div class="grid w-full gap-2 sm:grid-cols-[minmax(0,1fr)_190px] xl:w-auto xl:min-w-[470px]">
-                  <label class="relative block" for="endpoint-search">
-                    <span class="sr-only">Search endpoints</span>
-                    <AppIcon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-                    <input
-                      id="endpoint-search"
-                      v-model="search"
-                      type="search"
-                      placeholder="Search endpoints"
-                      class="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm font-bold outline-none ring-0 focus-ring dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                    />
-                  </label>
-                  <label for="endpoint-group" class="sr-only">Filter by group</label>
-                  <select
-                    id="endpoint-group"
-                    v-model="selectedGroup"
-                    class="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold outline-none focus-ring dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                  >
-                    <option v-for="group in ENDPOINT_GROUPS" :key="group" :value="group">{{ group }}</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                <article
-                  v-for="permission in PERMISSIONS"
-                  :key="permission.key"
-                  class="rounded-lg border border-slate-200 bg-[#f6f8f4] p-3 dark:border-slate-800 dark:bg-slate-900"
-                >
-                  <p class="font-mono text-xs font-black text-slate-950 dark:text-white">{{ permission.key }}</p>
-                  <p class="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">{{ permission.label }}</p>
-                </article>
-              </div>
-            </div>
-
-            <EndpointSection
-              v-for="endpoint in endpointSections"
-              :id="endpoint.id"
-              :key="endpoint.id"
-              :section="endpoint"
-              data-doc-section
-            />
-
-            <p
-              v-if="endpointSections.length === 0"
-              class="rounded-xl border border-slate-200 bg-white p-6 text-sm font-bold text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400"
-            >
-              No endpoints match the current filters.
-            </p>
-          </section>
+        <div class="sidebar-footer">
+          <a href="mailto:info@wessaal.com">Need help? <ArrowUpRight :size="14" /></a>
         </div>
+      </aside>
+
+      <main id="docs-content" class="developer-content">
+        <template v-if="activeEndpoint">
+          <EndpointSection :key="activeEndpoint.id" :section="activeEndpoint" />
+        </template>
+        <template v-else-if="isHome">
+          <div class="docs-guide-layout">
+            <article class="docs-article">
+              <div class="docs-breadcrumb"><span>Documentation</span><ChevronRight :size="14" /><span>Introduction</span></div>
+              <p class="intro-eyebrow">WESSAAL DEVELOPERS</p>
+              <h1 class="intro-title">Integrate with WESSAAL</h1>
+              <p class="intro-lead">Everything you need to connect your application with the WESSAAL messaging API. Explore the API, authenticate requests, and start building with practical examples.</p>
+              <div class="intro-rule" />
+              <h2 class="section-title">Start building</h2>
+              <p class="section-description">A straightforward path from your first API key to your first request.</p>
+
+              <div class="getting-started-list">
+                <button type="button" @click="navigate('authentication')" class="getting-started-link">
+                  <span class="start-icon"><KeyRound :size="20" /></span>
+                  <span class="start-copy"><strong>Authentication</strong><small>Configure your API key and request headers.</small></span>
+                  <ArrowRight :size="17" />
+                </button>
+                <button type="button" @click="navigate('quickstart')" class="getting-started-link">
+                  <span class="start-icon"><Terminal :size="20" /></span>
+                  <span class="start-copy"><strong>Quickstart</strong><small>Make your first request in a few steps.</small></span>
+                  <ArrowRight :size="17" />
+                </button>
+                <button type="button" @click="navigate('send-message')" class="getting-started-link">
+                  <span class="start-icon"><MessageSquare :size="20" /></span>
+                  <span class="start-copy"><strong>Send a message</strong><small>Review the request body and sample response.</small></span>
+                  <ArrowRight :size="17" />
+                </button>
+                <button type="button" @click="navigate('whatsapp-groups')" class="getting-started-link">
+                  <span class="start-icon"><MessageSquare :size="20" /></span>
+                  <span class="start-copy"><strong>Send to WhatsApp groups</strong><small>Sync your groups, choose a group ID and queue a group message safely.</small></span>
+                  <ArrowRight :size="17" />
+                </button>
+              </div>
+
+              <h2 class="section-title lower-title">API essentials</h2>
+              <div class="essentials-grid">
+                <div class="essential-item"><Server :size="18" /><strong>REST API</strong><p>Make HTTPS requests using JSON payloads.</p></div>
+                <div class="essential-item"><ShieldCheck :size="18" /><strong>Scoped keys</strong><p>Keys are checked against required permissions.</p></div>
+                <div class="essential-item"><Code2 :size="18" /><strong>Examples</strong><p>Copy request samples for cURL, JavaScript and PHP.</p></div>
+              </div>
+
+              <div class="article-footnote">This portal documents the Linked Devices integration API. Verify the contract and availability before production integration.</div>
+            </article>
+
+            <aside class="guide-side" aria-label="First request example">
+              <div class="guide-side-inner">
+                <div class="side-heading"><span>BASE URL</span><button type="button" @click="copyBaseUrl" :aria-label="copied ? 'Copied base URL' : 'Copy base URL'"><Check v-if="copied" :size="14" /><Copy v-else :size="14" /></button></div>
+                <div class="base-url"><code>{{ BASE_URL }}</code></div>
+                <div class="side-divider" />
+                <div class="side-heading"><span>YOUR FIRST REQUEST</span><span class="example-language">cURL</span></div>
+                <pre class="guide-code"><code><span class="token-cmd">curl</span> --request GET \
+  --url '{{ BASE_URL }}/ping' \
+  --header 'X-API-Key: YOUR_API_KEY'</code></pre>
+                <div class="side-divider" />
+                <div class="side-heading"><span>EXAMPLE RESPONSE</span><span class="example-language">200 OK</span></div>
+                <pre class="guide-code"><code>{
+  "success": true,
+  "message": "pong"
+}</code></pre>
+                <p class="code-disclaimer">Illustrative response based on existing documentation.</p>
+              </div>
+            </aside>
+          </div>
+        </template>
+        <template v-else-if="activeDoc">
+          <div class="docs-guide-layout">
+            <article class="docs-article guide-article">
+              <div class="docs-breadcrumb"><span>Guides</span><ChevronRight :size="14" /><span>{{ activeDoc.title }}</span></div>
+              <h1 class="reference-title">{{ activeDoc.title }}</h1>
+              <p class="reference-intro">{{ activeDoc.summary }}</p>
+              <div class="intro-rule" />
+              <template v-if="activeDoc.id === 'authentication'">
+                <h2 class="section-title">Authenticate every request</h2>
+                <p class="section-description">Add your key using the <code>X-API-Key</code> header. Keep the key on a trusted server, not in browser JavaScript.</p>
+                <div class="auth-fact"><KeyRound :size="17" /><div><strong>Header</strong><code>X-API-Key: YOUR_API_KEY</code></div></div>
+                <h2 class="section-title lower-title">Key security</h2>
+                <ul class="doc-bullet-list"><li v-for="bullet in activeDoc.bullets" :key="bullet">{{ bullet }}</li></ul>
+                <button class="inline-next" @click="navigate('quickstart')">Continue to quickstart <ArrowRight :size="16" /></button>
+              </template>
+              <template v-else-if="activeDoc.id === 'quickstart'">
+                <h2 class="section-title">Your first request</h2>
+                <div class="quickstep-list">
+                  <button v-for="(step, i) in activeDoc.steps" :key="step.title" class="quickstep" @click="navigate(['ping','me','instances-list','send-message','message-status'][i])">
+                    <span class="quickstep-index">{{ String(i + 1).padStart(2,'0') }}</span>
+                    <span><strong>{{ step.title }}</strong><small>{{ step.text }}</small></span>
+                    <ArrowUpRight :size="17" />
+                  </button>
+                </div>
+              </template>
+              <template v-else-if="activeDoc.id === 'whatsapp-groups'">
+                <h2 class="section-title">Group messaging workflow</h2>
+                <p class="section-description">Follow these steps in order. Import operations run asynchronously and sending is feature-gated.</p>
+                <div class="quickstep-list">
+                  <button v-for="(step, i) in activeDoc.steps" :key="step.id" class="quickstep" @click="navigate(step.id)">
+                    <span class="quickstep-index">{{ String(i + 1).padStart(2, '0') }}</span>
+                    <span><strong>{{ step.title }}</strong><small>{{ step.text }}</small></span>
+                    <ArrowUpRight :size="17" />
+                  </button>
+                </div>
+                <h2 class="section-title lower-title">Before you send</h2>
+                <ul class="doc-bullet-list"><li v-for="bullet in activeDoc.bullets" :key="bullet">{{ bullet }}</li></ul>
+                <button class="inline-next" @click="navigate('groups-list')">View group endpoints <ArrowRight :size="16" /></button>
+              </template>
+              <template v-else-if="activeDoc.id === 'responses'">
+                <h2 class="section-title">HTTP status codes</h2>
+                <p class="section-description">The current reference lists these result types. Exact response shapes can vary by operation.</p>
+                <div class="status-code-list">
+                  <div v-for="bullet in activeDoc.bullets" :key="bullet" class="status-code-row">
+                    <span class="status-number">{{ bullet.split(' ')[0] }}</span><p>{{ bullet.slice(bullet.indexOf(' ')+1) }}</p>
+                  </div>
+                </div>
+              </template>
+            </article>
+            <aside class="guide-side" aria-label="Request context">
+              <div class="guide-side-inner">
+                <div class="side-heading"><span>ENDPOINT</span><span class="example-language">v1</span></div>
+                <div class="base-url"><code>{{ BASE_URL }}</code></div>
+                <div class="side-divider" />
+                <div class="side-heading"><span>AUTH HEADER</span><span class="example-language">REQUIRED</span></div>
+                <pre class="guide-code"><code>X-API-Key: YOUR_API_KEY</code></pre>
+                <div class="side-divider" />
+                <p class="guide-note">Documentation examples use placeholders. Never paste a live secret into public code or screenshots.</p>
+                <button type="button" class="guide-link" @click="navigate('ping')">Explore the API reference <ArrowRight :size="15" /></button>
+              </div>
+            </aside>
+          </div>
+        </template>
+
+        <div v-if="prevPage || nextPage" class="docs-pagination">
+          <button type="button" v-if="prevPage" @click="navigate(prevPage.id)"><span>PREVIOUS</span><strong><ChevronRight class="flip-arrow" :size="15" /> {{ prevPage.title }}</strong></button>
+          <span v-else />
+          <button type="button" v-if="nextPage" @click="navigate(nextPage.id)"><span>NEXT</span><strong>{{ nextPage.title }} <ChevronRight :size="15" /></strong></button>
+        </div>
+        <footer class="docs-bottom-footer"><span>WESSAAL Developer Documentation</span><a href="mailto:info@wessaal.com">Support <ArrowUpRight :size="13" /></a></footer>
+      </main>
+    </div>
+
+    <div v-if="searchOpen" class="search-modal-backdrop" @click.self="closeSearch">
+      <div class="search-dialog" role="dialog" aria-modal="true" aria-label="Search documentation">
+        <div class="search-dialog-bar"><Search :size="20" /><input ref="searchInput" v-model="searchQuery" type="search" autocomplete="off" placeholder="Search guides, endpoints, parameters..." @keydown.enter="results.length && navigate(results[0].id)" /><button type="button" aria-label="Close search" @click="closeSearch"><X :size="19" /></button></div>
+        <div class="search-results">
+          <p class="search-results-title">{{ searchQuery ? 'SEARCH RESULTS' : 'QUICK ACCESS' }}</p>
+          <button v-for="item in results" :key="item.id" type="button" @click="navigate(item.id)" class="search-result">
+            <span class="search-result-icon"><FileText :size="17" /></span>
+            <span class="search-result-text"><strong>{{ item.title }}</strong><small>{{ item.group }} <span v-if="item.method"> · {{ item.desc }}</span></small></span>
+            <ChevronRight :size="16" />
+          </button>
+          <p v-if="!results.length" class="search-empty">No matching documentation pages.</p>
+        </div>
+        <div class="search-footer"><kbd>ESC</kbd> Close <span><kbd>↵</kbd> Open</span></div>
       </div>
-    </main>
+    </div>
   </div>
 </template>

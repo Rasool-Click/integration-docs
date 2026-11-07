@@ -4,7 +4,6 @@ export const NAV_ITEMS = [
   { id: 'quickstart', label: 'Quickstart', icon: 'list' },
   { id: 'endpoints', label: 'Linked Endpoints', icon: 'terminal' },
   { id: 'responses', label: 'Responses', icon: 'shield' },
-  { id: 'official', label: 'Official API Soon', icon: 'cloud' },
 ]
 
 export const DOC_SECTIONS = [
@@ -15,15 +14,14 @@ export const DOC_SECTIONS = [
     title: 'Integration Documentation',
     eyebrow: 'Developer portal',
     summary:
-      'Wessaal currently exposes the Linked Devices integration track. Official API integration content is marked as coming soon while the public contract is being finalized.',
+      'This reference covers the Linked Devices integration API, including API key authentication, messaging operations and related resources.',
     bullets: [
       'Linked Devices endpoints are served under /integration/v1 and require a valid X-API-Key header.',
       'API keys are permission-scoped, so each endpoint group requires the matching permission.',
-      'Successful send requests queue WhatsApp messages and return the local Wessaal message_id for tracking.',
-      'Official API integration content and endpoints are coming soon and are not reachable yet.',
+      'When enabled, group send requests queue WhatsApp group messages and return a message_id; queue acceptance is not delivery.',
     ],
     cards: [
-      { label: 'Live platform', value: 'Linked Devices', icon: 'smartphone' },
+      { label: 'Documented API', value: 'Linked Devices', icon: 'smartphone' },
       { label: 'Base path', value: '/integration/v1', icon: 'server' },
       { label: 'Authentication', value: 'X-API-Key', icon: 'lock' },
     ],
@@ -61,6 +59,29 @@ export const DOC_SECTIONS = [
     ],
   },
   {
+    id: 'whatsapp-groups',
+    type: 'content',
+    icon: 'message',
+    title: 'WhatsApp Groups',
+    eyebrow: 'Group messaging workflow',
+    summary:
+      'Import groups and contacts from your connected WhatsApp instance, list eligible groups, then queue a text message to an imported group. Group sends are subject to workspace permissions, policy checks, billing, and feature availability.',
+    steps: [
+      { id: 'instances-list', title: 'Find your instance', text: 'List instances and choose the ID or instance_name belonging to the workspace of your API key.' },
+      { id: 'sync-address-book', title: 'Sync address book', text: 'Request group and contact imports. HTTP 202 only confirms the import jobs were queued, not completed.' },
+      { id: 'groups-list', title: 'Find a group ID', text: 'List imported groups for that instance. Use the local numeric id (group_id), not the WhatsApp JID.' },
+      { id: 'send-group', title: 'Send to one group', text: 'Send text content with instance, group_id and a unique Idempotency-Key header. HTTP 202 means queued, not delivered.' },
+      { id: 'message-status', title: 'Check delivery state', text: 'Poll the returned message_id with read_messages permission. Verify actual provider delivery separately.' },
+    ],
+    bullets: [
+      'The API key must belong to the target workspace; manage_instances is needed for list and sync, send_message for sending, read_messages for tracking.',
+      'Only active, synced groups belonging to the chosen instance are eligible for sending.',
+      'The endpoint sends ONE message to ONE WhatsApp group, not separate messages to each member.',
+      'Use dry_run=true ONLY on staging for safe validation; it neither sends nor bills. Real staging delivery is denied unless an isolated test provider and approved test group are explicitly configured.',
+      'A successful group list response or can_send=true does not prove that the WhatsApp provider can actually deliver.',
+    ],
+  },
+  {
     id: 'responses',
     type: 'content',
     icon: 'shield',
@@ -78,20 +99,7 @@ export const DOC_SECTIONS = [
       '500 Internal Server Error: unexpected queueing or provider failure.',
     ],
   },
-  {
-    id: 'official',
-    type: 'content',
-    icon: 'cloud',
-    title: 'Official API',
-    eyebrow: 'Coming soon',
-    summary:
-      'Official integration is coming soon. The documentation, endpoint reference, request examples, and production access for this platform are intentionally unavailable right now.',
-    bullets: [
-      'Official endpoint content is hidden from the active endpoint reference until launch.',
-      'The /official documentation route redirects to the available Linked Devices docs.',
-      'API keys, scopes, examples, and production URLs will be published when the Official API is released.',
-    ],
-  },
+
 ]
 
 export const PERMISSIONS = [
@@ -221,13 +229,131 @@ export const ENDPOINTS = [
     },
   },
   {
+    id: 'send-group',
+    group: 'Groups',
+    title: 'Send to WhatsApp Group',
+    description:
+      'Queue ONE text message to an imported WhatsApp group belonging to this API key’s workspace and sender instance. Requires a unique Idempotency-Key header. HTTP 202 acknowledges queueing, not delivery. Feature availability is environment-dependent.',
+    method: 'POST',
+    path: '/messages/send-group',
+    permission: 'send_message',
+    responseStatus: '202 Accepted (new) · 200 OK (reused)',
+    requestHeaders: [
+      { name: 'Idempotency-Key', value: 'group-send-order-1001', description: 'Required, 1–128 characters. Reusing the same key and payload returns the original message; reusing it with a different request returns 409.' },
+    ],
+    bodyExample: {
+      instance: 'main-whatsapp',
+      group_id: 123,
+      content: 'Hello team, the meeting starts in 10 minutes.',
+    },
+    parameters: [
+      { name: 'instance', type: 'string', required: true, description: 'Instance ID or instance_name owned by the API key’s workspace.' },
+      { name: 'group_id', type: 'integer', required: true, description: 'Local numeric id obtained from GET /groups; do not send the group JID here.' },
+      { name: 'content', type: 'string', required: true, description: 'Text only, within the current outbound text limit and policy.' },
+      { name: 'dry_run', type: 'boolean', required: false, description: 'Staging only. If true, validate ownership and policy without queueing, billing or contacting WhatsApp. Do not include in production.' },
+    ],
+    responseExample: {
+      success: true,
+      message: 'Group message queued',
+      data: {
+        message_id: 2481,
+        group_id: 123,
+        instance_id: 12,
+        status: 'pending',
+        reused: false,
+      },
+    },
+    alternateResponse: {
+      title: 'Staging validation-only response',
+      status: '200 OK',
+      value: {
+        success: true,
+        message: 'Staging request validated; no WhatsApp message was sent or billed',
+        data: {
+          dry_run: true,
+          instance_id: 12,
+          group_id: 123,
+          provider_called: false,
+          billed: false,
+          status: 'validated_only',
+        },
+      },
+    },
+    notes: [
+      'Include X-API-Key, Content-Type: application/json and a unique Idempotency-Key header. The idempotency key is scoped to the API key and workspace.',
+      'Billing happens when a new message is accepted; the queue worker sends it asynchronously. Poll GET /messages/{messageId}/status with read_messages permission.',
+      'For safe staging testing, add dry_run: true to the JSON body and use https://staging-app.wessaal.com/integration/v1. The staging server currently blocks real sends without a separately approved test provider/group.',
+      'Feature disabled: 503 GROUP_SENDING_DISABLED. No matching synced group: 404. Missing Idempotency-Key or malformed body: 422. Same key with changed request: 409 IDEMPOTENCY_CONTEXT_MISMATCH. Policy: 403. Insufficient credit: 402. Real staging delivery not approved: 403 STAGING_REAL_SEND_NOT_APPROVED.',
+      'Dry run on non-staging is rejected with 422 DRY_RUN_STAGING_ONLY. Reused idempotent requests return 200 with reused=true and do not queue or charge another message.',
+    ],
+  },
+  {
+    id: 'groups-list',
+    group: 'Groups',
+    title: 'List WhatsApp Groups',
+    description:
+      'List active, imported and synchronized WhatsApp groups scoped to your API key’s workspace. Optionally filter by the connected instance; returns a paginated list with local group IDs.',
+    method: 'GET',
+    path: '/groups',
+    permission: 'manage_instances',
+    queryExample: { instance: 'main-whatsapp', per_page: 50 },
+    responseStatus: '200 OK',
+    parameters: [
+      { name: 'instance', type: 'string (query)', required: false, description: 'Filter by instance ID or instance_name in the same workspace.' },
+      { name: 'per_page', type: 'integer (query)', required: false, description: 'Number of records per page, 1–100 (default 50).' },
+    ],
+    responseExample: {
+      success: true,
+      data: {
+        current_page: 1,
+        data: [
+          { id: 123, name: 'Operations Team', instance_id: 12, is_active: true, synced: true, can_send: true },
+        ],
+        per_page: 50,
+        total: 1,
+      },
+    },
+    notes: [
+      'Use the numeric id from data.data[].id as group_id for POST /messages/send-group.',
+      'Groups must be active, synchronized, have a group JID, and belong to this API key’s workspace.',
+      'The can_send field reflects the feature flag and group JID format, NOT proof of provider connectivity or permission for real staging delivery.',
+      'An unknown instance filter returns 404. Invalid per_page or instance query parameters return 422.',
+    ],
+  },
+  {
+    id: 'sync-address-book',
+    group: 'Groups',
+    title: 'Sync Groups & Contacts',
+    description:
+      'Queue separate WhatsApp group and contact import jobs for a connected instance. This endpoint does not wait for provider synchronization or guarantee that the imported lists are immediately available.',
+    method: 'POST',
+    path: '/instances/{instanceId}/sync-address-book',
+    permission: 'manage_instances',
+    responseStatus: '202 Accepted',
+    parameters: [
+      { name: 'instanceId', type: 'string (path)', required: true, description: 'Instance ID or instance_name belonging to your workspace. Must be connected/open.' },
+    ],
+    responseExample: {
+      success: true,
+      message: 'Group and contact synchronization jobs queued; completion is not yet confirmed.',
+      data: { instance_id: 12, status: 'queued' },
+    },
+    notes: [
+      'A connected/open WhatsApp instance is required; otherwise 409. An instance outside your workspace returns 404.',
+      'There is a five-minute synchronization cooldown per workspace and instance. Repeating early returns 429 SYNC_COOLDOWN.',
+      'The API creates separate queue jobs for groups and contacts. A provider or worker failure can leave lists empty even after HTTP 202.',
+      'After background processing, call GET /groups?instance=<instance_name> to confirm the groups imported. The normal GET /contacts endpoint provides saved contacts.',
+      '503 means the server could not queue the import jobs. Staging requires an isolated, connected WhatsApp provider to test the actual import.',
+    ],
+  },
+  {
     id: 'message-status',
     group: 'Messages',
     title: 'Message Delivery Status',
     description: 'Read the delivery status for a message ID returned by a send endpoint.',
     method: 'GET',
     path: '/messages/{messageId}/status',
-    permission: 'send_message',
+    permission: 'read_messages',
     responseStatus: '200 OK',
     parameters: [{ name: 'messageId', type: 'integer', required: true, description: 'Wessaal message ID.' }],
   },
@@ -399,4 +525,4 @@ ENDPOINTS.forEach((endpoint) => {
   endpoint.platformLabel ??= 'Linked Devices'
 })
 
-export const ENDPOINT_GROUPS = ['All', 'Health', 'Messages', 'Instances', 'Contacts', 'Templates', 'Workspaces']
+export const ENDPOINT_GROUPS = ['All', 'Health', 'Messages', 'Groups', 'Instances', 'Contacts', 'Templates', 'Workspaces']

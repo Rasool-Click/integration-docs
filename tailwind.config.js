@@ -12,15 +12,15 @@ export default {
           200: '#bae6fd',
           300: '#7dd3fc',
           400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7', // Accessible text on light bg (Contrast ratio > 4.5:1)
+          500: '#465FF1',
+          600: '#465FF1', // Accessible text on light bg (Contrast ratio > 4.5:1)
           700: '#0369a1',
           800: '#075985',
           900: '#0c4a6e',
           950: '#082f49',
         },
         focus: {
-          ring: '#0284c7', // Clear outline for keyboard navigation
+          ring: '#465FF1', // Clear outline for keyboard navigation
         }
       },
       boxShadow: {
