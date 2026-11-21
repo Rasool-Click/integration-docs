@@ -71,7 +71,10 @@ function syncHash() {
   activeId.value = hashId && searchItems.some(item => item.id === hashId)
     ? hashId : (routeToId[route.path] || 'overview')
 }
-watch(() => [route.path, route.hash], syncHash, { immediate: true })
+// Fragment identifiers are unavailable during SSR: apply them only after hydration.
+watch(() => [route.path, route.hash], () => {
+  if (typeof window !== 'undefined') syncHash()
+})
 async function showSearch() {
   searchQuery.value = ''
   searchOpen.value = true
