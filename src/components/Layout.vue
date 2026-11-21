@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowRight, ArrowUpRight, BookOpen, Check, ChevronDown, ChevronRight,
   Code2, Command, Copy, ExternalLink, FileText, KeyRound, Menu, MessageSquare,
@@ -9,6 +10,17 @@ import EndpointSection from './EndpointSection.vue'
 import { DOC_SECTIONS, ENDPOINTS, PERMISSIONS } from '../data/docs'
 
 const BASE_URL = 'https://app.wessaal.com/integration/v1'
+const route = useRoute()
+const router = useRouter()
+const pagePaths = {
+  overview: '/',
+  quickstart: '/quickstart',
+  authentication: '/authentication',
+  endpoints: '/endpoints',
+  webhooks: '/webhooks',
+}
+const routeToId = Object.fromEntries(Object.entries(pagePaths).map(([id, path]) => [path, id]))
+const pageUrl = id => pagePaths[id] || '/endpoints#' + encodeURIComponent(id)
 const docs = DOC_SECTIONS
 const endpoints = ENDPOINTS.filter(endpoint => (endpoint.platform || 'linked') === 'linked')
 const groupNames = ['Health', 'Messages', 'Groups', 'Instances', 'Contacts', 'Templates', 'Workspaces']
@@ -16,7 +28,7 @@ const endpointGroups = groupNames
   .map(name => ({ name, items: endpoints.filter(item => item.group === name) }))
   .filter(group => group.items.length)
 
-const activeId = ref('overview')
+const activeId = ref(routeToId[route.path] || 'overview')
 const sidebarOpen = ref(false)
 const searchOpen = ref(false)
 const searchQuery = ref('')
@@ -25,6 +37,8 @@ const copied = ref(false)
 const collapsedGroups = ref({})
 const searchItems = [
   ...docs.map(item => ({ id: item.id, title: item.title, desc: item.summary, group: 'Guides' })),
+  { id: 'endpoints', title: 'API Endpoints', desc: 'Methods, paths, permissions and examples', group: 'Reference' },
+  { id: 'webhooks', title: 'Webhooks', desc: 'Delivery events and status polling', group: 'Guides' },
   ...endpoints.map(item => ({ id: item.id, title: item.title, desc: item.method + ' ' + item.path, group: item.group, method: item.method })),
 ]
 const results = computed(() => {
@@ -47,15 +61,20 @@ function navigate(id) {
   sidebarOpen.value = false
   searchOpen.value = false
   searchQuery.value = ''
+  router.push(pageUrl(id))
   if (typeof window !== 'undefined') {
-    window.history.replaceState(null, '', '#' + id)
     window.scrollTo({ top: 0, behavior: 'instant' })
   }
 }
 function syncHash() {
-  const id = decodeURIComponent(window.location.hash.slice(1))
-  if (searchItems.some(item => item.id === id)) activeId.value = id
+  const hashId = decodeURIComponent(route.hash.slice(1))
+  activeId.value = hashId && searchItems.some(item => item.id === hashId)
+    ? hashId : (routeToId[route.path] || 'overview')
 }
+// Fragment identifiers are unavailable during SSR: apply them only after hydration.
+watch(() => [route.path, route.hash], () => {
+  if (typeof window !== 'undefined') syncHash()
+})
 async function showSearch() {
   searchQuery.value = ''
   searchOpen.value = true
@@ -108,7 +127,7 @@ onBeforeUnmount(() => {
     <header class="developer-topbar">
       <div class="topbar-brand">
         <button class="topbar-menu icon-button" type="button" aria-label="Open navigation" @click="sidebarOpen = true"><Menu :size="19" /></button>
-        <a href="#overview" class="brand-home" aria-label="WESSAAL Developers home" @click.prevent="navigate('overview')">
+        <a href="/" class="brand-home" aria-label="WESSAAL Developers home" @click.prevent="navigate('overview')">
           <img src="/brand/WESSAAL_Primary_On_Light.svg" alt="WESSAAL" />
         </a>
         <span class="brand-separator" />
@@ -136,10 +155,15 @@ onBeforeUnmount(() => {
         <nav class="sidebar-scroll" aria-label="Documentation pages">
           <div class="sidebar-group">
             <p class="sidebar-group-label">GET STARTED</p>
-            <button :class="['sidebar-item', { selected: activeId === 'overview' }]" @click="navigate('overview')"><BookOpen :size="17" /><span>Introduction</span></button>
-            <button :class="['sidebar-item', { selected: activeId === 'authentication' }]" @click="navigate('authentication')"><KeyRound :size="17" /><span>Authentication</span></button>
-            <button :class="['sidebar-item', { selected: activeId === 'quickstart' }]" @click="navigate('quickstart')"><Zap :size="17" /><span>Quickstart</span></button>
+            <a href="/" :class="['sidebar-item', { selected: activeId === 'overview' }]" @click.prevent="navigate('overview')"><BookOpen :size="17" /><span>Introduction</span></a>
+            <a href="/authentication" :class="['sidebar-item', { selected: activeId === 'authentication' }]" @click.prevent="navigate('authentication')"><KeyRound :size="17" /><span>Authentication</span></a>
+            <a href="/quickstart" :class="['sidebar-item', { selected: activeId === 'quickstart' }]" @click.prevent="navigate('quickstart')"><Zap :size="17" /><span>Quickstart</span></a>
             <button :class="['sidebar-item', { selected: activeId === 'responses' }]" @click="navigate('responses')"><ShieldCheck :size="17" /><span>Responses & errors</span></button>
+          </div>
+          <div class="sidebar-group">
+            <p class="sidebar-group-label">EXPLORE</p>
+            <a href="/endpoints" :class="['sidebar-item', { selected: activeId === 'endpoints' }]" @click.prevent="navigate('endpoints')"><Terminal :size="17" /><span>API endpoints</span></a>
+            <a href="/webhooks" :class="['sidebar-item', { selected: activeId === 'webhooks' }]" @click.prevent="navigate('webhooks')"><ShieldCheck :size="17" /><span>Webhooks &amp; status</span></a>
           </div>
           <div class="sidebar-group reference-group">
             <div class="sidebar-reference-heading"><p class="sidebar-group-label">API REFERENCE</p><span>{{ endpoints.length }}</span></div>
@@ -177,26 +201,26 @@ onBeforeUnmount(() => {
               <p class="section-description">A straightforward path from your first API key to your first request.</p>
 
               <div class="getting-started-list">
-                <button type="button" @click="navigate('authentication')" class="getting-started-link">
+                <a :href="pageUrl('authentication')" @click.prevent="navigate('authentication')" class="getting-started-link">
                   <span class="start-icon"><KeyRound :size="20" /></span>
                   <span class="start-copy"><strong>Authentication</strong><small>Configure your API key and request headers.</small></span>
                   <ArrowRight :size="17" />
-                </button>
-                <button type="button" @click="navigate('quickstart')" class="getting-started-link">
+                </a>
+                <a :href="pageUrl('quickstart')" @click.prevent="navigate('quickstart')" class="getting-started-link">
                   <span class="start-icon"><Terminal :size="20" /></span>
                   <span class="start-copy"><strong>Quickstart</strong><small>Make your first request in a few steps.</small></span>
                   <ArrowRight :size="17" />
-                </button>
-                <button type="button" @click="navigate('send-message')" class="getting-started-link">
+                </a>
+                <a :href="pageUrl('send-message')" @click.prevent="navigate('send-message')" class="getting-started-link">
                   <span class="start-icon"><MessageSquare :size="20" /></span>
                   <span class="start-copy"><strong>Send a message</strong><small>Review the request body and sample response.</small></span>
                   <ArrowRight :size="17" />
-                </button>
-                <button type="button" @click="navigate('whatsapp-groups')" class="getting-started-link">
+                </a>
+                <a :href="pageUrl('whatsapp-groups')" @click.prevent="navigate('whatsapp-groups')" class="getting-started-link">
                   <span class="start-icon"><MessageSquare :size="20" /></span>
                   <span class="start-copy"><strong>Send to WhatsApp groups</strong><small>Sync your groups, choose a group ID and queue a group message safely.</small></span>
                   <ArrowRight :size="17" />
-                </button>
+                </a>
               </div>
 
               <h2 class="section-title lower-title">API essentials</h2>
@@ -227,6 +251,44 @@ onBeforeUnmount(() => {
                 <p class="code-disclaimer">Illustrative response based on existing documentation.</p>
               </div>
             </aside>
+          </div>
+        </template>
+        <template v-else-if="activeId === 'endpoints'">
+          <div class="docs-guide-layout">
+            <article class="docs-article">
+              <div class="docs-breadcrumb"><a href="/">Documentation</a><ChevronRight :size="14" /><span>API Endpoints</span></div>
+              <h1 class="reference-title">API Endpoints</h1>
+              <p class="reference-intro">The WESSAAL Linked Devices API exposes permission-scoped REST endpoints under <code>/integration/v1</code>.</p>
+              <section v-for="group in endpointGroups" :key="group.name" class="reference-block">
+                <h2>{{ group.name }}</h2>
+                <ul class="doc-bullet-list">
+                  <li v-for="item in group.items" :key="item.id">
+                    <a :href="pageUrl(item.id)" @click.prevent="navigate(item.id)"><strong>{{ item.method }} {{ item.path }}</strong> — {{ item.title }}</a>
+                    <p>{{ item.description }}</p>
+                  </li>
+                </ul>
+              </section>
+            </article>
+            <aside class="guide-side"><div class="guide-side-inner"><div class="side-heading">BASE URL</div><div class="base-url"><code>{{ BASE_URL }}</code></div><p class="guide-note">Include your scoped X-API-Key. An HTTP 202 means a message is queued, not delivered.</p></div></aside>
+          </div>
+        </template>
+        <template v-else-if="activeId === 'webhooks'">
+          <div class="docs-guide-layout">
+            <article class="docs-article">
+              <div class="docs-breadcrumb"><a href="/">Documentation</a><ChevronRight :size="14" /><span>Webhooks</span></div>
+              <h1 class="reference-title">Webhooks and delivery events</h1>
+              <p class="reference-intro">The documented Linked Devices integration contract does not currently specify a customer-configurable webhook subscription endpoint or a guaranteed event payload. Do not assume callback delivery is available.</p>
+              <h2 class="section-title lower-title">Track message delivery with the documented API</h2>
+              <p class="section-description">Queue a message with POST /messages/send, store the returned message_id, and check GET /messages/{messageId}/status using read_messages permission.</p>
+              <ul class="doc-bullet-list">
+                <li>HTTP 202 Accepted confirms queue acceptance only, not WhatsApp delivery.</li>
+                <li>Use a bounded retry/backoff schedule for status polling and handle temporary errors.</li>
+                <li>Never expose X-API-Key in frontend JavaScript or public webhook URLs.</li>
+                <li>Confirm any future webhook event schema and signature-verification rules against the published API contract before integrating.</li>
+              </ul>
+              <a class="inline-next" href="/endpoints" @click.prevent="navigate('endpoints')">Explore message endpoints <ArrowRight :size="16" /></a>
+            </article>
+            <aside class="guide-side"><div class="guide-side-inner"><div class="side-heading">STATUS ENDPOINT</div><div class="base-url"><code>GET /messages/{messageId}/status</code></div><p class="guide-note">Required permission: read_messages</p></div></aside>
           </div>
         </template>
         <template v-else-if="activeDoc">

@@ -1,0 +1,62 @@
+# WESSAAL Linked Devices API v1 — full reference
+
+Canonical documentation: https://docs.wessaal.com/
+Quickstart: https://docs.wessaal.com/quickstart/
+Authentication: https://docs.wessaal.com/authentication/
+Endpoints: https://docs.wessaal.com/endpoints/
+Webhooks/status: https://docs.wessaal.com/webhooks/
+
+## API origin
+Production base path: https://app.wessaal.com/integration/v1
+Use HTTPS and JSON request bodies.
+
+## Authentication
+Send X-API-Key: YOUR_API_KEY on each request. This is not HTTP Bearer auth. Scope each key to the minimum permissions: send_message, read_messages, manage_instances, manage_contacts, manage_templates and manage_workspaces. Store the key server-side and rotate any exposed key.
+
+## First requests
+1. GET /ping confirms valid API key (pong on success).
+2. GET /me inspects the key owner and permissions.
+3. GET /instances selects a sender (manage_instances permission).
+4. POST /messages/send queues a message (send_message permission).
+5. GET /messages/{messageId}/status polls the resulting message (read_messages permission).
+
+## Core endpoints
+GET /ping
+GET /me
+GET /instances
+GET /instances/{instanceId}
+GET /instances/{instanceId}/status
+POST /messages/send
+POST /messages/send-bulk
+POST /messages/send-group
+GET /messages
+GET /messages/{messageId}
+GET /messages/{messageId}/status
+GET /groups
+POST /instances/{instanceId}/sync-address-book
+GET /contacts
+POST /contacts
+GET /contacts/{contactId}
+PUT /contacts/{contactId}
+DELETE /contacts/{contactId}
+GET /templates
+POST /templates
+
+## WhatsApp group messages
+Import and synchronize groups from a connected instance first. GET /groups returns local numeric IDs. For POST /messages/send-group, provide instance, group_id, content and a unique Idempotency-Key request header. HTTP 202 only indicates queue acceptance. Some group-send features are environment-gated. Staging dry_run validation is not real delivery.
+
+## Response codes
+200: Successful reads or supported reused/bulk operations.
+201: Created resource.
+202: Accepted for asynchronous queueing — not delivery.
+402: Insufficient credits.
+403: Permission, workspace or outbound-policy restriction.
+404: Resource not found or unavailable to the key owner.
+409: State/idempotency conflict where applicable.
+422: Invalid request or unsupported operation.
+500: Unexpected server error.
+
+## Webhooks and event integrity
+The currently published Linked Devices integration API reference does not define a customer-configurable webhook subscription route, canonical event types or a signature-verification protocol. Do not invent a webhook endpoint or claim event delivery. Use GET /messages/{messageId}/status and server-side backoff polling until an authoritative webhook contract is published.
+
+The public docs describe an integration contract, not proof that every optional capability is enabled in a particular account.

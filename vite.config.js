@@ -12,11 +12,10 @@ export default defineConfig(({ isSsrBuild }) => ({
     dirStyle: 'nested',
     formatting: 'minify',
     includedRoutes(paths, routes) {
-      // Documentation sections are hash-based; only / is a real HTML route.
-      // /linked redirects to / and the catch-all must never be prerendered.
-      return paths.filter(path => path === '/')
+      // Only canonical public docs; never pre-render redirects or catch-alls.
+      return paths.filter(path => ['/', '/quickstart', '/authentication', '/endpoints', '/webhooks'].includes(path))
     },
-    onFinished() { generateSitemap({ hostname: 'https://docs.wessaal.com/' }) }
+    onFinished() { generateSitemap({ hostname: 'https://docs.wessaal.com/', exclude: ['/404'], generateRobotsTxt: false }) }
   },
   build: {
     rollupOptions: {

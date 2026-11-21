@@ -1,0 +1,12 @@
+# WESSAAL Linked Devices API Documentation
+
+> Canonical English developer documentation for WESSAAL Linked Devices API v1. API key permissions and deployment-specific feature availability apply.
+
+- [Documentation overview](https://docs.wessaal.com/): What the integration API does and how to navigate this portal.
+- [Quickstart](https://docs.wessaal.com/quickstart/): Validate an API key, inspect permissions, choose an instance and queue a message.
+- [Authentication](https://docs.wessaal.com/authentication/): Send X-API-Key on HTTPS requests; keep credentials on a trusted server.
+- [API Endpoints](https://docs.wessaal.com/endpoints/): REST methods and paths under https://app.wessaal.com/integration/v1.
+- [Webhooks and status](https://docs.wessaal.com/webhooks/): Delivery status polling; webhook subscriptions are not currently specified by this published contract.
+- [Full AI-readable reference](https://docs.wessaal.com/llms-full.txt): Detailed capabilities and error semantics.
+
+The examples are illustrative. A queued message (HTTP 202) is not proof of actual delivery.
