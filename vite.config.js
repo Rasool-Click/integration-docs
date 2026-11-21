@@ -9,10 +9,12 @@ export default defineConfig({
   ],
   ssgOptions: {
     script: 'async',
+    dirStyle: 'nested',
     formatting: 'minify',
     includedRoutes(paths, routes) {
-      // return all static paths and custom routes defined in memory/requirements
-      return paths
+      // Documentation sections are hash-based; only / is a real HTML route.
+      // /linked redirects to / and the catch-all must never be prerendered.
+      return paths.filter(path => path === '/')
     },
     onFinished() { generateSitemap({ hostname: 'https://docs.wessaal.com/' }) }
   },
