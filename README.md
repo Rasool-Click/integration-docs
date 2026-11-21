@@ -37,3 +37,17 @@ All example values are placeholders.
 
 Updated locally and ready for your review/upload. Not pushed to GitHub or
 deployed automatically. Original documentation UI styling is preserved.
+
+## WSL-024 — production SEO / SSG deployment gate
+
+The `build` script uses **vite-ssg build** (not `vite build`). Page sections are hash-based; `/` is the canonical prerendered page. The legacy `/linked` path redirects to `/`.
+
+After an approved **CI** build, run `node scripts/check-ssg-output.mjs` against `dist/`. It fails if the homepage is a blank SPA shell or SEO outputs are missing.
+
+Before deploying to docs.wessaal.com:
+1. Verify the active Nginx `root` and existing `location` directives. Upload the contents of `dist/` to that root.
+2. Review the example `deploy/nginx-docs-locations.conf.example` and **replace** the existing fallback `location /` with the documented 404-safe rule (do not append conflicting locations).
+3. Validate Nginx configuration with `sudo nginx -t` before an approved reload; do not alter other server blocks.
+4. Live acceptance: `curl -i https://docs.wessaal.com/` must contain `Integrate with WESSAAL` in its initial HTML; `robots.txt` returns 200 text/plain; `sitemap.xml` returns 200 XML; a random nonexistent path must return a real 404.
+
+These instructions do **not** represent a production deployment or a verified CI build.
