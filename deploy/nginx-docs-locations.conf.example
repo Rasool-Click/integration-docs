@@ -1,0 +1,32 @@
+# WSL-024: include INSIDE the existing docs.wessaal.com HTTPS server block,
+# AFTER verifying the live root points to the CONTENTS of dist/.
+# REPLACE the current SPA fallback "try_files $uri $uri/ /index.html;".
+# A separate location / alongside an existing location / will fail nginx -t.
+# Do not apply this snippet to other WESSAAL hostnames.
+error_page 404 /404.html;
+
+location = /404.html {
+    internal;
+}
+
+location = /robots.txt {
+    default_type text/plain;
+    try_files /robots.txt =404;
+}
+
+location = /sitemap.xml {
+    default_type application/xml;
+    try_files /sitemap.xml =404;
+}
+
+location = /linked {
+    return 301 /;
+}
+
+location = /linked/ {
+    return 301 /;
+}
+
+location / {
+    try_files $uri $uri/ =404;
+}
