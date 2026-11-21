@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import generateSitemap from 'vite-ssg-sitemap'
 
-export default defineConfig({
+export default defineConfig(({ isSsrBuild }) => ({
   base: '/',
   plugins: [
     vue(),
@@ -21,7 +21,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
+        manualChunks: isSsrBuild ? undefined : {
           'vue-core': ['vue', 'vue-router'],
           'unhead': ['@unhead/vue'],
         },
@@ -29,4 +29,4 @@ export default defineConfig({
     },
     chunkSizeWarningLimit: 1000,
   },
-})
+}))
