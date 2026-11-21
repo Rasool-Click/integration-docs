@@ -1,3 +1,33 @@
 User-agent: *
 Allow: /
+
+# Search crawlers: public documentation may be indexed.
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+# Opt out of model-training crawlers without blocking public search indexing.
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
 Sitemap: https://docs.wessaal.com/sitemap.xml
